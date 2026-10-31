@@ -554,15 +554,18 @@ def build_adapter(
 ) -> BaseProviderAdapter:
     """Factory that resolves credentials from environment variables by key name only."""
     import os
+    from app.services.system_settings import get_cached_setting_value
 
-    api_key = os.getenv(credential_key_name) if credential_key_name else None
+    api_key = None
+    if credential_key_name:
+        api_key = get_cached_setting_value(credential_key_name)
     if not api_key:
         if provider_type == "Gemini":
-            api_key = settings.GEMINI_API_KEY
+            api_key = get_cached_setting_value("GEMINI_API_KEY", settings.GEMINI_API_KEY)
         elif provider_type == "NVIDIA":
-            api_key = settings.NVIDIA_API_KEY
+            api_key = get_cached_setting_value("NVIDIA_API_KEY", settings.NVIDIA_API_KEY)
         elif provider_type == "OpenAI":
-            api_key = settings.OPENAI_API_KEY
+            api_key = get_cached_setting_value("OPENAI_API_KEY", settings.OPENAI_API_KEY)
 
     cfg = ProviderConfig(
         provider_type=provider_type,

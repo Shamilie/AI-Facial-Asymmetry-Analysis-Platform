@@ -788,22 +788,6 @@ async def compat_admin_settings(
     current_user: Any = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    from app.core.database import ACTIVE_DATABASE_LABEL, Base
-    from app.services.storage import get_database_storage_stats
+    from app.api.v1.endpoints.admin import get_system_settings
 
-    blob_stats = await get_database_storage_stats(db)
-    return ok(
-        {
-            "app_name": settings.APP_NAME,
-            "environment": settings.ENVIRONMENT,
-            "database_engine": ACTIVE_DATABASE_LABEL,
-            "total_database_tables": len(Base.metadata.tables),
-            "storage_backend": settings.STORAGE_BACKEND,
-            "database_blob_storage": blob_stats,
-            "allow_external_ai_uploads": settings.ALLOW_EXTERNAL_AI_UPLOADS,
-            "task_backend": settings.TASK_BACKEND,
-            "display_px_per_mm_assumption_rejected_for_physical_scale": True,
-            "mandatory_examiner_sign_off_for_visit_completion": True,
-            "immutable_audit_log_listeners_enabled": True,
-        }
-    )
+    return await get_system_settings(current_user, db)

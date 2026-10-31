@@ -82,6 +82,8 @@ from app.models.reconstruction import (
     ReconstructionStatusEnum,
 )
 from app.models.report import Report, ReportStatusEnum, ReportTypeEnum
+from app.models.system_setting import SystemSetting
+from app.core.config import settings
 from app.models.user import Permission, Role, RolePermission, User, UserRole
 from app.models.visit import Visit, VisitStatusEnum, VisitTypeEnum
 from app.services.image_processing import assess_quality, sha256_bytes
@@ -192,11 +194,76 @@ async def _upgrade_to_real_ai_models(db: AsyncSession) -> None:
     await db.commit()
 
 
+async def _ensure_system_settings_seeded(db: AsyncSession) -> None:
+    """Ensure standard system settings and API credentials exist in the database."""
+    default_settings = [
+        (
+            "GEMINI_API_KEY",
+            getattr(settings, "GEMINI_API_KEY", "") or "",
+            "AI & Models",
+            "Google Gemini 2.5 Flash API Key for narrative clinical reports and vision analysis",
+            True,
+        ),
+        (
+            "OPENAI_API_KEY",
+            getattr(settings, "OPENAI_API_KEY", "") or "",
+            "AI & Models",
+            "Optional OpenAI API Key for companion LLM inference",
+            True,
+        ),
+        (
+            "ALLOW_EXTERNAL_AI_UPLOADS",
+            "false",
+            "Security & Privacy",
+            "Allow external cloud AI API calls for anonymized clinical imagery (requires ethics approval)",
+            False,
+        ),
+        (
+            "STORAGE_BACKEND",
+            "database",
+            "Storage & Files",
+            "Active image and blob storage backend (database | local | s3)",
+            False,
+        ),
+        (
+            "MAX_UPLOAD_SIZE_MB",
+            "50",
+            "Storage & Files",
+            "Maximum upload file size in megabytes",
+            False,
+        ),
+        (
+            "TASK_BACKEND",
+            "inline",
+            "General",
+            "AI pipeline job dispatcher mode (inline | celery)",
+            False,
+        ),
+    ]
+    for key, def_val, cat, desc, is_sec in default_settings:
+        row = (await db.execute(select(SystemSetting).where(SystemSetting.key == key))).scalar_one_or_none()
+        if row is None:
+            db.add(
+                SystemSetting(
+                    key=key,
+                    value=def_val,
+                    category=cat,
+                    description=desc,
+                    is_secret=is_sec,
+                    is_editable=True,
+                )
+            )
+        elif not row.value and def_val:
+            row.value = def_val
+    await db.commit()
+
+
 async def ensure_seeded(db: AsyncSession) -> None:
     """Idempotently seed roles, permissions, protocol, AI configs and demo records."""
     existing = (await db.execute(select(User).limit(1))).scalar_one_or_none()
     if existing is not None:
         await _upgrade_to_real_ai_models(db)
+        await _ensure_system_settings_seeded(db)
         return
 
     # 1. Permissions & Roles
@@ -909,3 +976,4 @@ async def ensure_seeded(db: AsyncSession) -> None:
         ]
     )
     await db.commit()
+    await _ensure_system_settings_seeded(db)

@@ -21,6 +21,7 @@ from sqlalchemy.orm import selectinload
 
 from app.ai.base import ImageInput
 from app.ai.providers.registry import build_adapter
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.permissions import ALL_PERMISSIONS, P
 from app.core.responses import bad_request, conflict, not_found, ok
@@ -915,3 +916,71 @@ async def mark_notification_read(
         raise HTTPException(status_code=404, detail="Notification not found")
     n.is_read = True
     return ok({"id": str(n.id), "is_read": True})
+
+
+# ---------------------------------------------------------------------------
+# Dynamic System Settings & Database-Backed Credentials
+# ---------------------------------------------------------------------------
+
+
+class SettingUpdateRequest(BaseModel):
+    value: str | None = None
+    category: str | None = None
+    description: str | None = None
+    is_secret: bool | None = None
+
+
+@router.get("/admin/settings")
+async def get_system_settings(
+    current_user: Any = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    from app.core.database import ACTIVE_DATABASE_LABEL, Base
+    from app.services.storage import get_database_storage_stats
+    from app.services.system_settings import list_all_settings
+
+    db_settings = await list_all_settings(db, reveal_secrets=False)
+    blob_stats = await get_database_storage_stats(db)
+
+    return ok(
+        {
+            "settings": db_settings,
+            "governance": {
+                "app_name": settings.APP_NAME,
+                "environment": settings.ENVIRONMENT,
+                "database_engine": ACTIVE_DATABASE_LABEL,
+                "total_database_tables": len(Base.metadata.tables),
+                "storage_backend": settings.STORAGE_BACKEND,
+                "database_blob_storage": blob_stats,
+                "task_backend": settings.TASK_BACKEND,
+                "allow_external_ai_uploads": settings.ALLOW_EXTERNAL_AI_UPLOADS,
+                "display_px_per_mm_assumption_rejected_for_physical_scale": True,
+                "mandatory_examiner_sign_off_for_visit_completion": True,
+                "immutable_audit_log_listeners_enabled": True,
+            },
+        }
+    )
+
+
+@router.put("/admin/settings/{key}")
+async def update_system_setting(
+    key: str,
+    payload: SettingUpdateRequest,
+    request: Request,
+    current_user: Any = Depends(require_permissions(P.CONFIG_MANAGE)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    from app.services.system_settings import set_setting_value
+
+    setting = await set_setting_value(
+        db,
+        key=key,
+        value=payload.value,
+        current_user=current_user,
+        category=payload.category or "General",
+        description=payload.description,
+        is_secret=bool(payload.is_secret if payload.is_secret is not None else ("KEY" in key or "SECRET" in key)),
+        request=request,
+    )
+    return ok({"key": setting.key, "updated": True, "category": setting.category})
+

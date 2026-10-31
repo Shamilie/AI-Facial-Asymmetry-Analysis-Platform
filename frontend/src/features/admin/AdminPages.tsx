@@ -40,6 +40,7 @@ import LockResetIcon from '@mui/icons-material/LockReset';
 import SecurityIcon from '@mui/icons-material/Security';
 import PublishIcon from '@mui/icons-material/Publish';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, extractErrorMessage } from '@/services/api';
 import {
@@ -1583,15 +1584,39 @@ export const ProtocolConfigPage: React.FC = () => {
 // ============================================================================
 export const SettingsPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [editSetting, setEditSetting] = useState<{
+    key: string;
+    value: string;
+    description: string;
+    is_secret: boolean;
+    category: string;
+  } | null>(null);
+
+  const canManage = Boolean(user?.is_superuser || user?.permissions?.includes('config:manage'));
 
   const settingsQuery = useQuery({
     queryKey: ['admin-system-settings'],
     queryFn: async () => {
       const res = await api.get('/admin/settings');
-      return res.data.data as Record<string, any>;
+      return res.data.data as {
+        settings: Array<{
+          id: string;
+          key: string;
+          value: string;
+          is_configured: boolean;
+          category: string;
+          description: string;
+          is_secret: boolean;
+          is_editable: boolean;
+          updated_at: string | null;
+        }>;
+        governance: Record<string, any>;
+      };
     },
   });
 
@@ -1611,12 +1636,28 @@ export const SettingsPage: React.FC = () => {
     onError: (err) => setMsg({ type: 'error', text: extractErrorMessage(err) }),
   });
 
+  const updateSettingMut = useMutation({
+    mutationFn: async (payload: { key: string; value: string }) => {
+      const res = await api.put(`/admin/settings/${payload.key}`, { value: payload.value });
+      return res.data.data;
+    },
+    onSuccess: (data) => {
+      setMsg({ type: 'success', text: `Setting '${data.key}' updated in database successfully.` });
+      setEditSetting(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-system-settings'] });
+    },
+    onError: (err) => setMsg({ type: 'error', text: extractErrorMessage(err) }),
+  });
+
+  const dbSettings = settingsQuery.data?.settings || [];
+  const governance = settingsQuery.data?.governance || {};
+
   return (
     <Box>
       <ResearchDisclaimerBanner />
       <PageHeader
-        title="Platform Settings, Privacy & Account Security"
-        subtitle="Inspect clinical data governance policies, storage isolation, and manage your researcher credentials"
+        title="Platform Settings, Dynamic Credentials & Account Security"
+        subtitle="Manage database-backed API keys, AI model credentials, storage parameters, and researcher security"
       />
 
       {msg && (
@@ -1625,81 +1666,221 @@ export const SettingsPage: React.FC = () => {
         </Alert>
       )}
 
-      <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-                <SecurityIcon color="primary" />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Current User Profile & Session
-                </Typography>
-              </Stack>
-              <Stack spacing={1}>
-                <Typography variant="body2">
-                  <strong>Full Name:</strong> {user?.full_name}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Email:</strong> {user?.email}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Primary Role:</strong> {user?.primary_role}
-                </Typography>
-                <Divider sx={{ my: 1.5 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Change Researcher Password
-                </Typography>
-                <TextField
-                  label="Current Password"
-                  type="password"
-                  size="small"
-                  fullWidth
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                />
-                <TextField
-                  label="New Password (min 8 chars)"
-                  type="password"
-                  size="small"
-                  fullWidth
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <Button
-                  variant="contained"
-                  disabled={!currentPassword || newPassword.length < 8 || changePwdMut.isPending}
-                  onClick={() => changePwdMut.mutate()}
-                >
-                  Update Password
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                System Governance & Research Integrity Configuration
+      <Stack spacing={2.5}>
+        {/* TOP SECTION: Database-Backed System Settings & API Keys */}
+        <Card>
+          <CardContent>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+              <VpnKeyOutlinedIcon color="primary" />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Database-Backed Configuration & API Credentials
               </Typography>
-              <Box
-                component="pre"
-                sx={{
-                  p: 2,
-                  borderRadius: 1.5,
-                  backgroundColor: '#0F172A',
-                  color: '#E2E8F0',
-                  fontSize: '0.78rem',
-                  overflowX: 'auto',
-                }}
-              >
-                {JSON.stringify(settingsQuery.data || {}, null, 2)}
-              </Box>
-            </CardContent>
-          </Card>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              These settings are stored dynamically in the <code>system_settings</code> database table. You can configure
+              your Gemini API key, storage engine, and AI parameters live here without modifying the <code>.env</code> file
+              or restarting the server.
+            </Typography>
+
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Configuration Key</TableCell>
+                    <TableCell>Category</TableCell>
+                    <TableCell>Current Configured Value</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Status</TableCell>
+                    {canManage && <TableCell align="right">Actions</TableCell>}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dbSettings.map((s) => (
+                    <TableRow key={s.key} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                          {s.key}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" variant="outlined" label={s.category} />
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: 'monospace',
+                            color: s.is_configured ? 'text.primary' : 'text.secondary',
+                            fontStyle: s.is_configured ? 'normal' : 'italic',
+                          }}
+                        >
+                          {s.is_configured ? s.value : '(not set)'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">
+                          {s.description}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          color={s.is_configured ? 'success' : 'default'}
+                          label={s.is_configured ? 'Configured' : 'Unset'}
+                        />
+                      </TableCell>
+                      {canManage && (
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<EditOutlinedIcon fontSize="small" />}
+                            onClick={() =>
+                              setEditSetting({
+                                key: s.key,
+                                value: '',
+                                description: s.description,
+                                is_secret: s.is_secret,
+                                category: s.category,
+                              })
+                            }
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+
+        {/* BOTTOM SECTION: User Profile & Governance Metadata */}
+        <Grid container spacing={2.5}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card>
+              <CardContent>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <SecurityIcon color="primary" />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Current User Profile & Session
+                  </Typography>
+                </Stack>
+                <Stack spacing={1}>
+                  <Typography variant="body2">
+                    <strong>Full Name:</strong> {user?.full_name}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Email:</strong> {user?.email}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Primary Role:</strong> {user?.primary_role}
+                  </Typography>
+                  <Divider sx={{ my: 1.5 }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Change Researcher Password
+                  </Typography>
+                  <TextField
+                    label="Current Password"
+                    type="password"
+                    size="small"
+                    fullWidth
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                  <TextField
+                    label="New Password (min 8 chars)"
+                    type="password"
+                    size="small"
+                    fullWidth
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <Button
+                    variant="contained"
+                    disabled={!currentPassword || newPassword.length < 8 || changePwdMut.isPending}
+                    onClick={() => changePwdMut.mutate()}
+                  >
+                    Update Password
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                  System Governance & Research Integrity Configuration
+                </Typography>
+                <Box
+                  component="pre"
+                  sx={{
+                    p: 2,
+                    borderRadius: 1.5,
+                    backgroundColor: '#0F172A',
+                    color: '#E2E8F0',
+                    fontSize: '0.78rem',
+                    overflowX: 'auto',
+                  }}
+                >
+                  {JSON.stringify(governance, null, 2)}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      </Stack>
+
+      {/* Edit Setting Dialog */}
+      <Dialog open={Boolean(editSetting)} onClose={() => setEditSetting(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Configure System Setting — {editSetting?.key}
+        </DialogTitle>
+        <DialogContent dividers>
+          {editSetting && (
+            <Stack spacing={2} sx={{ mt: 0.5 }}>
+              <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
+                {editSetting.description}
+              </Alert>
+              <TextField
+                label={editSetting.is_secret ? 'Enter New API Key / Secret' : 'Setting Value'}
+                type={editSetting.is_secret ? 'password' : 'text'}
+                size="small"
+                fullWidth
+                required
+                value={editSetting.value}
+                onChange={(e) => setEditSetting({ ...editSetting, value: e.target.value })}
+                helperText={
+                  editSetting.is_secret
+                    ? 'Enter the new secret (e.g. AIzaSy...). Value will be saved in the database and masked.'
+                    : 'Changes take effect immediately across all active AI pipelines.'
+                }
+              />
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditSetting(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!editSetting || !editSetting.value.trim() || updateSettingMut.isPending}
+            onClick={() => {
+              if (editSetting) {
+                updateSettingMut.mutate({
+                  key: editSetting.key,
+                  value: editSetting.value.trim(),
+                });
+              }
+            }}
+          >
+            Save to Database
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

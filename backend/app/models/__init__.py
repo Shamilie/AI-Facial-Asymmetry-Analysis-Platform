@@ -65,6 +65,7 @@ from app.models.report import (
     ReportStatusEnum,
     ReportTypeEnum,
 )
+from app.models.system_setting import SystemSetting
 from app.models.user import Permission, Role, RolePermission, User, UserRole
 from app.models.visit import Visit, VisitStatusEnum, VisitTypeEnum
 
@@ -127,6 +128,7 @@ __all__ = [
     "ClinicalAssessment",
     "AuditLog",
     "StoredBlob",
+    "SystemSetting",
     "Notification",
     "NotificationTypeEnum",
 ]
