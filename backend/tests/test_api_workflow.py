@@ -85,16 +85,15 @@ async def test_end_to_end_clinical_research_workflow():
 
             import asyncio
 
-            for _ in range(25):
+            for _ in range(50):
                 await asyncio.sleep(0.2)
                 r_chk = await client.get(
-                    f"/api/v1/analysis/{preop_visit_id}/landmarks",
+                    f"/api/v1/visits/{preop_visit_id}/analysis",
                     headers=coord_headers,
                 )
                 if r_chk.status_code == 200:
-                    chk_views = r_chk.json()["data"]["views"]
-                    f_v = next((v for v in chk_views if v["image_type"] == "Frontal"), None)
-                    if f_v and any(lm["code"] == "GO_L" for lm in f_v["landmarks"]):
+                    stg = r_chk.json()["data"].get("stages", [])
+                    if len(stg) == 11 and all(s.get("status") in ("Completed", "Validated") for s in stg):
                         break
 
             # 5. Inspect landmarks and manually correct a landmark while preserving original AI coords
