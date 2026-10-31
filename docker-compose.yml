@@ -1,6 +1,9 @@
 version: "3.9"
 
 services:
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL 16 Relational & JSONB Database
+  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
     container_name: fa_postgres
@@ -15,10 +18,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U faplatform -d facial_asymmetry"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 5s
 
+  # ---------------------------------------------------------------------------
+  # 2. Redis Cache & Job Broker (Optional Celery Worker Dispatcher)
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: fa_redis
@@ -29,9 +36,50 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
+
+  # ---------------------------------------------------------------------------
+  # 3. FastAPI Python Backend Service
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fa_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://faplatform:dev_password_123@postgres:5432/facial_asymmetry
+      DATABASE_URL_SYNC: postgresql://faplatform:dev_password_123@postgres:5432/facial_asymmetry
+      REDIS_URL: redis://redis:6379/0
+      TASK_BACKEND: inline
+      SECRET_KEY: dev-secret-key-for-local-research-platform-2026
+      JWT_SECRET_KEY: dev-jwt-secret-key-for-local-research-platform-2026
+      CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173","http://localhost"]'
+      ENVIRONMENT: development
+      STORAGE_BACKEND: database
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # 4. Vite React Frontend Service
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fa_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

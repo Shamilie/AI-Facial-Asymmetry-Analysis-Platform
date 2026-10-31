@@ -12,13 +12,15 @@ Comprehensive setup guide for deploying and running the **AI Facial Asymmetry An
 | **Python** | `>= 3.13.0` (or `3.12.x`) | Backend API, AI inference, numerical engines | `winget install Python.Python.3.13`<br>or [python.org](https://www.python.org/downloads/) |
 | **Node.js & npm** | Node `>= 20.x LTS` (e.g. `v22.x`)<br>npm `>= 10.x` | Frontend React + Vite development server | `winget install OpenJS.NodeJS.LTS`<br>or [nodejs.org](https://nodejs.org/) |
 | **Git** | `>= 2.40.0` | Version control & repository synchronization | `winget install Git.Git`<br>or [git-scm.com](https://git-scm.com/download/win) |
-| **PostgreSQL** *(Recommended)* | `>= 15` or `16` | Primary database with JSONB and relational integrity | `winget install PostgreSQL.PostgreSQL.16`<br>*(Auto-falls back to SQLite WAL if PostgreSQL is not installed)* |
-| **Docker Desktop** *(Optional)* | Latest | Optional containerized deployment for PostgreSQL & Redis | `winget install Docker.DockerDesktop`<br>or [docker.com](https://www.docker.com/products/docker-desktop/) |
+| **PostgreSQL** *(Recommended)* | `>= 15` or `16` | Primary database with JSONB and relational integrity | `winget install PostgreSQL.PostgreSQL.16`<br>*(Or auto-started in Docker container `fa_postgres`, or SQLite WAL fallback)* |
+| **Docker Desktop** *(Recommended)* | Latest | Runs PostgreSQL 16 container, Redis, or entire multi-container stack | `winget install Docker.DockerDesktop`<br>or [docker.com](https://www.docker.com/products/docker-desktop/) |
 
 > [!NOTE]
-> The backend features **automatic database detection**:
-> - If PostgreSQL is reachable at `localhost:5432` with database `facial_asymmetry`, it uses async PostgreSQL (`asyncpg`).
-> - If PostgreSQL is not running or not installed, it automatically uses high-performance SQLite in WAL mode (`facial_asymmetry.db`). No configuration changes are required.
+> The platform features **automatic database detection & Docker orchestration**:
+> - If Docker is installed, `start.bat` / `start.ps1` automatically boots PostgreSQL 16 in the background (`fa_postgres` container on port 5432).
+> - If PostgreSQL is already running natively on port 5432, it connects directly.
+> - If neither is available, it gracefully falls back to high-performance local SQLite WAL mode (`facial_asymmetry.db`).
+> - You can also run the **entire platform** (PostgreSQL + Redis + FastAPI Backend + Nginx Frontend) in Docker via **`start_docker.bat`**.
 
 ---
 
@@ -98,28 +100,59 @@ cd ..
 
 ## 4. Starting the Application
 
-### 1-Click Launch (Recommended)
+### Option A: 1-Click Launch with Docker PostgreSQL (Recommended for Development)
 Double-click **`start.bat`** (or execute `.\start.ps1` in PowerShell).
 
-This starts both:
-1. **Backend Server**: `http://127.0.0.1:8000` (Interactive Swagger Docs: `http://127.0.0.1:8000/docs`)
-2. **Frontend Web UI**: `http://localhost:5173`
-3. Automatically opens your default web browser to the Login page.
+This automatically:
+1. Detects Docker and brings up the **PostgreSQL 16** container (`docker compose up -d postgres`).
+2. Verifies TCP connectivity on port `5432`.
+3. Launches the **FastAPI Python Backend** (`http://127.0.0.1:8000`, Docs: `http://127.0.0.1:8000/docs`).
+4. Launches the **Vite React Frontend** (`http://localhost:5173`).
+5. Opens your default web browser to the Login page.
 
-### Manual Launch (Separate Terminals)
+### Option B: 1-Click Full Containerized Stack (Production / Isolated Mode)
+Double-click **`start_docker.bat`** (or execute `docker compose up --build -d`).
 
-**Terminal 1 — Backend:**
+Runs all 4 services inside Docker:
+- **`fa_postgres`**: PostgreSQL 16 on port `5432`
+- **`fa_redis`**: Redis 7 cache & broker on port `6379`
+- **`fa_backend`**: FastAPI backend on port `8000`
+- **`fa_frontend`**: Nginx Alpine serving React SPA & reverse proxying on port `5173`
+
+### Option C: Manual Launch (Separate Terminals)
+
+**Step 1 — Start PostgreSQL (Docker or Native Service):**
+```powershell
+docker compose up -d postgres
+```
+
+**Step 2 — Terminal 1 — Backend:**
 ```powershell
 .\.venv\Scripts\Activate.ps1
 cd backend
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-**Terminal 2 — Frontend:**
+**Step 3 — Terminal 2 — Frontend:**
 ```powershell
 cd frontend
 npm run dev
 ```
+
+---
+
+## 5. Live Configuration & API Keys (Database Table)
+
+API credentials and AI provider configurations can be configured dynamically without restarting the server or managing `.env` files:
+
+1. Log in as an Administrator (`admin@faplatform.org` / `Research@2026`).
+2. Navigate to **Administration** -> **System Settings**.
+3. Configure your API keys live in the database table:
+   - `GEMINI_API_KEY`: Google Gemini Flash / Pro models for multimodal narrative report drafting.
+   - `NVIDIA_API_KEY`: NVIDIA NIM API for hardware-accelerated deep inference.
+   - `OPENAI_API_KEY`: OpenAI GPT-4o / vision models.
+   - `CUSTOM_GPU_API_KEY`: Custom on-premise GPU inference cluster endpoints.
+4. Values are masked (`••••••••`), cached in memory for sub-millisecond retrieval, and all updates are recorded with immutable audit log entries.
 
 ---
 
@@ -160,4 +193,4 @@ Run the integrated backend test suite:
 cd backend
 python -m pytest tests/ -v
 ```
-Expected output: **`11 passed in ~16s`**.
+Expected output: **`12 passed in ~20s`**.

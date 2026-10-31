@@ -2,14 +2,15 @@
 .SYNOPSIS
     Automated Single-Shot Setup Script for AI Facial Asymmetry Analysis Platform (Windows)
 .DESCRIPTION
-    Verifies system prerequisites, installs dependencies, sets up the Python virtual
-    environment, downloads AI model weights, configures environment variables,
-    installs frontend packages, and tests database connectivity.
+    Verifies system prerequisites (Git, Python 3.13, Node.js, Docker/PostgreSQL),
+    starts PostgreSQL via Docker, sets up the Python virtual environment,
+    downloads real AI model weights, configures environment variables,
+    installs frontend packages, and initializes the database.
 #>
 
 param(
     [switch]$SkipPrereqInstall = $false,
-    [switch]$InstallPostgres = $false
+    [switch]$InstallDocker = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,7 +48,7 @@ Write-Host @"
 "@ -ForegroundColor DarkCyan
 
 # -----------------------------------------------------------------------------
-# STEP 1: Verify Core Prerequisites (winget, Python, Node, Git)
+# STEP 1: Verify Core Prerequisites (Git, Python, Node, Docker)
 # -----------------------------------------------------------------------------
 Write-Step "Step 1: Checking System Prerequisites"
 
@@ -97,6 +98,21 @@ if (Get-Command npm -ErrorAction SilentlyContinue) {
     Write-Warn "npm is not detected."
 }
 
+# Check Docker / Docker Desktop
+$DockerFound = $false
+if (Get-Command docker -ErrorAction SilentlyContinue) {
+    $dockerVer = (docker --version 2>&1)
+    Write-Success "Docker detected: $dockerVer"
+    $DockerFound = $true
+} else {
+    Write-Warn "Docker Desktop is not installed."
+    if ($InstallDocker) {
+        $MissingTools += "Docker.DockerDesktop"
+    } else {
+        Write-Host "  To install Docker via winget: winget install Docker.DockerDesktop" -ForegroundColor DarkGray
+    }
+}
+
 # Optional winget auto-install for missing prerequisites
 if ($MissingTools.Count -gt 0) {
     if (-not $SkipPrereqInstall -and (Get-Command winget -ErrorAction SilentlyContinue)) {
@@ -113,10 +129,11 @@ if ($MissingTools.Count -gt 0) {
         Write-Host "`nNOTE: If new tools were installed, you may need to restart PowerShell for environment variables to take effect." -ForegroundColor Yellow
     } else {
         Write-Err "Missing prerequisites: $($MissingTools -join ', ')"
-        Write-Host "Please install them via winget or manual installers before continuing:"
+        Write-Host "Please install them before continuing:"
         Write-Host "  winget install Python.Python.3.13"
         Write-Host "  winget install OpenJS.NodeJS.LTS"
         Write-Host "  winget install Git.Git"
+        Write-Host "  winget install Docker.DockerDesktop"
         if (-not $PythonCmd) { exit 1 }
     }
 }
@@ -137,14 +154,12 @@ if (-not (Test-Path $EnvPath)) {
         Write-Warn ".env.example not found. Creating default .env."
         @"
 ENVIRONMENT=development
-DEBUG=True
-API_V1_PREFIX=/api/v1
-SECRET_KEY=dev-secret-key-medical-research-2026
-JWT_SECRET_KEY=dev-jwt-secret-research-2026
 DATABASE_URL=postgresql+asyncpg://faplatform:dev_password_123@localhost:5432/facial_asymmetry
 DATABASE_URL_SYNC=postgresql://faplatform:dev_password_123@localhost:5432/facial_asymmetry
+SECRET_KEY=dev-secret-key-medical-research-2026
+JWT_SECRET_KEY=dev-jwt-secret-research-2026
 CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
-STORAGE_BACKEND=database
+LOG_LEVEL=INFO
 "@ | Out-File -FilePath $EnvPath -Encoding utf8
         Write-Success "Created default .env file."
     }
@@ -153,9 +168,45 @@ STORAGE_BACKEND=database
 }
 
 # -----------------------------------------------------------------------------
-# STEP 3: Setup Python Virtual Environment (.venv)
+# STEP 3: Start PostgreSQL Container (Docker)
 # -----------------------------------------------------------------------------
-Write-Step "Step 3: Setting Up Python Virtual Environment"
+Write-Step "Step 3: Initializing PostgreSQL 16 via Docker"
+
+$ComposeCmd = if (Get-Command docker-compose -ErrorAction SilentlyContinue) { "docker-compose" } else { "docker compose" }
+
+if ($DockerFound) {
+    Write-Host "Starting PostgreSQL 16 container (fa_postgres) on port 5432..." -ForegroundColor Cyan
+    try {
+        & $ComposeCmd up -d postgres
+        # Wait up to 10 seconds for port 5432 to become active
+        $ready = $false
+        for ($i = 0; $i -lt 10; $i++) {
+            try {
+                $tcp = New-Object System.Net.Sockets.TcpClient
+                $tcp.Connect("127.0.0.1", 5432)
+                $tcp.Close()
+                $ready = $true
+                break
+            } catch {
+                Start-Sleep -Seconds 1
+            }
+        }
+        if ($ready) {
+            Write-Success "PostgreSQL container is active and listening on port 5432."
+        } else {
+            Write-Warn "PostgreSQL container started, still initializing."
+        }
+    } catch {
+        Write-Warn "Could not start PostgreSQL container. Ensure Docker Desktop is running."
+    }
+} else {
+    Write-Host "Docker not detected. Backend will use local PostgreSQL service or SQLite fallback." -ForegroundColor Yellow
+}
+
+# -----------------------------------------------------------------------------
+# STEP 4: Setup Python Virtual Environment (.venv)
+# -----------------------------------------------------------------------------
+Write-Step "Step 4: Setting Up Python Virtual Environment"
 
 $VenvPath = Join-Path $RootPath ".venv"
 $VenvPython = Join-Path $VenvPath "Scripts\python.exe"
@@ -190,9 +241,9 @@ if (Test-Path $AiReqPath) {
 }
 
 # -----------------------------------------------------------------------------
-# STEP 4: Download Real AI Model Weights
+# STEP 5: Download Real AI Model Weights
 # -----------------------------------------------------------------------------
-Write-Step "Step 4: Ensuring Real AI Model Weights"
+Write-Step "Step 5: Ensuring Real AI Model Weights"
 
 $ModelsDir = Join-Path $RootPath "backend\models\mediapipe"
 if (-not (Test-Path $ModelsDir)) {
@@ -222,9 +273,9 @@ if (-not (Test-Path $SegmenterModelPath)) {
 }
 
 # -----------------------------------------------------------------------------
-# STEP 5: Setup Frontend (npm install)
+# STEP 6: Setup Frontend (npm install)
 # -----------------------------------------------------------------------------
-Write-Step "Step 5: Setting Up Frontend Dependencies"
+Write-Step "Step 6: Setting Up Frontend Dependencies"
 
 $FrontendDir = Join-Path $RootPath "frontend"
 if (Test-Path $FrontendDir) {
@@ -238,9 +289,9 @@ if (Test-Path $FrontendDir) {
 }
 
 # -----------------------------------------------------------------------------
-# STEP 6: Verify Database Connectivity & Seeding
+# STEP 7: Verify Database Connectivity & Seeding
 # -----------------------------------------------------------------------------
-Write-Step "Step 6: Initializing Database & Seed Verification"
+Write-Step "Step 7: Initializing Database & Seed Verification"
 
 Push-Location (Join-Path $RootPath "backend")
 $testScript = @"
@@ -266,27 +317,23 @@ try {
 Pop-Location
 
 # -----------------------------------------------------------------------------
-# STEP 7: Completed & Next Steps
+# STEP 8: Completed & Next Steps
 # -----------------------------------------------------------------------------
 Write-Step "Setup Completed Successfully!"
 
 Write-Host @"
 All components are configured and ready to run.
 
-Quick Start Instructions:
-  1. Double-click 'start.bat' OR run:
-       powershell -ExecutionPolicy Bypass -File .\start.ps1
+How to Run:
+  * Hybrid Mode (PostgreSQL in Docker + Local Dev Servers):
+      Double-click 'start.bat'
 
-  2. Open your browser:
-       Frontend Application:  http://localhost:5173
-       Backend Swagger API:   http://localhost:8000/docs
+  * Full Containerized Mode (Entire Platform in Docker):
+      Double-click 'start_docker.bat'
 
-  3. Default Seeded Credentials:
-       - System Administrator:    admin@faplatform.org / Research@2026
-       - Principal Investigator:  pi@faplatform.org / Research@2026
-       - Research Coordinator:    coordinator@faplatform.org / Research@2026
-       - Clinician / Examiner:    examiner@faplatform.org / Research@2026
-       - Research Analyst:        analyst@faplatform.org / Research@2026
-       - Read-only Researcher:    readonly@faplatform.org / Research@2026
+Default Access:
+  * Web Portal:       http://localhost:5173
+  * Swagger Docs:     http://127.0.0.1:8000/docs
+  * Admin Login:      admin@faplatform.org / Research@2026
 ====================================================================
 "@ -ForegroundColor Green
