@@ -30,9 +30,12 @@ To set up and run the entire platform on a new Windows machine in a single step:
 2. In Windows File Explorer, simply double-click **`run.bat`**.
 3. The script automatically:
    - Verifies Docker CLI & engine status (starting Docker Desktop if stopped).
+   - **Git Sync on Rerun**: If rerun in a Git repository, automatically pulls the latest code (`git pull`).
    - Configures `.env` from `.env.example`.
    - Verifies and downloads Google MediaPipe neural weights (FaceLandmarker + Multiclass Segmenter).
-   - Executes `docker compose up --build -d` building both backend and frontend images.
+   - **Smart Container Orchestration**:
+     - **Reuses** `fa_postgres` and `fa_redis` containers and images without rebuilding (preserving database data).
+     - **Rebuilds and updates** only `fa_backend` and `fa_frontend` with your latest code updates.
    - Waits for services to become healthy and opens your browser to **`http://localhost:5173`**.
    - Provides live interactive options to view container logs (`L`), restart (`R`), or stop (`S`).
 

@@ -13,7 +13,7 @@ cd /d "%~dp0"
 :: -----------------------------------------------------------------------------
 :: STEP 1: Verify Docker Installation
 :: -----------------------------------------------------------------------------
-echo [1/5] Checking Docker installation...
+echo [1/6] Checking Docker installation...
 
 where docker >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
@@ -37,7 +37,7 @@ if %ERRORLEVEL% NEQ 0 (
 :: -----------------------------------------------------------------------------
 :: STEP 2: Check / Start Docker Engine Daemon
 :: -----------------------------------------------------------------------------
-echo [2/5] Checking Docker daemon status...
+echo [2/6] Checking Docker daemon status...
 docker info >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [INFO] Docker daemon is not active. Attempting to start Docker Desktop...
@@ -70,9 +70,33 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Docker daemon is active and responsive.
 
 :: -----------------------------------------------------------------------------
-:: STEP 3: Environment Setup (.env and AI model weights)
+:: STEP 3: Check & Pull Latest Code from Git
 :: -----------------------------------------------------------------------------
-echo [3/5] Verifying environment and model weights...
+echo [3/6] Checking for repository code updates...
+if exist ".git" (
+    where git >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        echo [INFO] Syncing latest code changes from remote Git repository...
+        git pull --ff-only 2>nul
+        if !ERRORLEVEL! NEQ 0 (
+            git pull 2>nul
+        )
+        if !ERRORLEVEL! EQU 0 (
+            echo [OK] Codebase successfully updated to latest commit.
+        ) else (
+            echo [INFO] Remote sync completed or offline. Proceeding with current code.
+        )
+    ) else (
+        echo [INFO] Git CLI not found in PATH. Skipping remote update check.
+    )
+) else (
+    echo [INFO] Directory is not a Git repository. Skipping remote update.
+)
+
+:: -----------------------------------------------------------------------------
+:: STEP 4: Environment Setup (.env and AI model weights)
+:: -----------------------------------------------------------------------------
+echo [4/6] Verifying environment and model weights...
 
 if not exist ".env" (
     if exist ".env.example" (
@@ -96,37 +120,44 @@ if not exist "%MODEL_DIR%\selfie_multiclass_256x256.tflite" (
 )
 
 :: -----------------------------------------------------------------------------
-:: STEP 4: Build and Start Containers via Docker Compose
+:: STEP 5: Run Database/Redis (Reuse) & Rebuild App Containers (Backend/Frontend)
 :: -----------------------------------------------------------------------------
-echo [4/5] Building and starting all Docker services...
-echo       - PostgreSQL 16 Relational + JSONB Database
-echo       - Redis 7 Cache ^& Task Broker
-echo       - FastAPI Python Backend (Port 8000)
-echo       - Vite React Frontend + Nginx (Port 5173)
+echo [5/6] Starting services and updating application containers...
 echo.
 
 where docker-compose >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
+if !ERRORLEVEL! EQU 0 (
     set "COMPOSE_CMD=docker-compose"
 ) else (
     set "COMPOSE_CMD=docker compose"
 )
 
-%COMPOSE_CMD% up --build -d
-
-if %ERRORLEVEL% NEQ 0 (
+:: Phase A: Ensure PostgreSQL and Redis are running (reusing existing containers and images)
+echo --- Phase 1: Reusing PostgreSQL 16 and Redis (no rebuild) ---
+%COMPOSE_CMD% up -d postgres redis
+if !ERRORLEVEL! NEQ 0 (
     echo.
-    echo [ERROR] Docker Compose failed to build or start containers.
-    echo Check the error messages above.
+    echo [ERROR] Failed to start PostgreSQL/Redis services.
     pause
-    exit /b %ERRORLEVEL%
+    exit /b !ERRORLEVEL!
+)
+
+:: Phase B: Rebuild backend and frontend images with the updated code
+echo.
+echo --- Phase 2: Updating Backend ^& Frontend images with fresh code ---
+%COMPOSE_CMD% up -d --build backend frontend
+if !ERRORLEVEL! NEQ 0 (
+    echo.
+    echo [ERROR] Failed to build or update Backend/Frontend containers.
+    pause
+    exit /b !ERRORLEVEL!
 )
 
 :: -----------------------------------------------------------------------------
-:: STEP 5: Service Health Check & Browser Launch
+:: STEP 6: Service Health Check & Browser Launch
 :: -----------------------------------------------------------------------------
 echo.
-echo [5/5] Verifying services and opening browser...
+echo [6/6] Verifying services and opening browser...
 
 :: Brief wait for Nginx and backend to settle
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$ready = $false; for ($i = 0; $i -lt 15; $i++) { try { $res = Invoke-WebRequest -Uri 'http://localhost:5173' -UseBasicParsing -TimeoutSec 2; if ($res.StatusCode -eq 200) { $ready = $true; break } } catch { Start-Sleep -Seconds 1 } }; exit $(if ($ready) { 0 } else { 1 })" >nul 2>&1

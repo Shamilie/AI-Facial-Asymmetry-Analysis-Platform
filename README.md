@@ -32,9 +32,12 @@ Double-click **`run.bat`** (or execute `.\run.bat` in Command Prompt / PowerShel
 
 This automatically:
 1. Checks and starts Docker Desktop (if not active).
-2. Sets up `.env` and downloads MediaPipe AI models.
-3. Builds and launches all 4 containerized services (`PostgreSQL 16`, `Redis 7`, `FastAPI Backend`, `React Vite Frontend`).
-4. Opens your browser to **`http://localhost:5173`**.
+2. Syncs latest commits from Git on every rerun (`git pull`).
+3. Sets up `.env` and downloads MediaPipe AI models.
+4. Intelligently orchestrates containers:
+   - **Reuses** `fa_postgres` (PostgreSQL 16) and `fa_redis` images/containers without recreation.
+   - **Rebuilds and updates** `fa_backend` and `fa_frontend` with the latest code.
+5. Opens your browser to **`http://localhost:5173`**.
 
 ---
 
