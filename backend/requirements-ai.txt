@@ -1,0 +1,13 @@
+# Optional AI runtimes. Install only the ones your environment supports.
+# Check wheel availability for your Python version before installing.
+#
+#   pip install -r requirements-ai.txt
+#
+# MediaPipe Tasks API (baseline facial landmarks). Requires the face_landmarker.task
+# model bundle in MEDIAPIPE_MODEL_PATH (see docs/ai-model-configuration.md).
+mediapipe>=0.10.18
+
+# PyTorch for custom local landmark / segmentation models (HRNet, RTMPose, U-Net, SegFormer).
+# Choose the build matching your CUDA version from https://pytorch.org
+# torch>=2.5.0
+# torchvision>=0.20.0

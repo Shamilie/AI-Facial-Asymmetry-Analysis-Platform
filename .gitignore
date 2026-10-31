@@ -1,0 +1,115 @@
+# ==============================================================================
+# AI Facial Asymmetry Analysis Platform — Git Ignore Configuration
+# ==============================================================================
+
+# --- Environment & Sensitive Credentials ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+*.crt
+# Keep example environment file tracked in Git
+!.env.example
+
+# --- Local Databases & Persistent SQLite Files ---
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+facial_asymmetry.db
+backend/facial_asymmetry.db
+
+# --- Uploads, Stored Media & Artifacts ---
+storage/
+uploads/
+media/
+backend/storage/
+backend/uploads/
+scratch/
+
+# --- Python & Backend Build Artifacts ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Python Virtual Environments ---
+venv/
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# --- Testing, Linting & Type Checking ---
+.pytest_cache/
+backend/.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.mypy_cache/
+.ruff_cache/
+
+# --- Node.js & Frontend Build Outputs ---
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.eslintcache
+
+# --- OS-Generated Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# --- IDEs & Code Editors ---
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# --- Log Files ---
+*.log
+logs/
+backend/logs/
