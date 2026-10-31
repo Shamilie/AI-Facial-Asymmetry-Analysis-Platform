@@ -27,7 +27,20 @@ A production-oriented clinical research web application for longitudinal quantit
 
 ## Quick Start (Windows)
 
-### 1. Start the FastAPI Backend
+### 1-Click Single-Shot Docker Runner (Recommended)
+Double-click **`run.bat`** (or execute `.\run.bat` in Command Prompt / PowerShell).
+
+This automatically:
+1. Checks and starts Docker Desktop (if not active).
+2. Sets up `.env` and downloads MediaPipe AI models.
+3. Builds and launches all 4 containerized services (`PostgreSQL 16`, `Redis 7`, `FastAPI Backend`, `React Vite Frontend`).
+4. Opens your browser to **`http://localhost:5173`**.
+
+---
+
+### Manual Launch (Separate Terminals)
+
+#### 1. Start the FastAPI Backend
 ```powershell
 cd backend
 python3.13 -m pip install -r requirements.txt

@@ -17,31 +17,24 @@ Comprehensive setup guide for deploying and running the **AI Facial Asymmetry An
 
 > [!NOTE]
 > The platform features **automatic database detection & Docker orchestration**:
-> - If Docker is installed, `start.bat` / `start.ps1` automatically boots PostgreSQL 16 in the background (`fa_postgres` container on port 5432).
-> - If PostgreSQL is already running natively on port 5432, it connects directly.
-> - If neither is available, it gracefully falls back to high-performance local SQLite WAL mode (`facial_asymmetry.db`).
-> - You can also run the **entire platform** (PostgreSQL + Redis + FastAPI Backend + Nginx Frontend) in Docker via **`start_docker.bat`**.
+> - Running **`run.bat`** automatically verifies Docker Desktop, creates `.env`, downloads neural models, builds the stack, and starts all 4 containers (`fa_postgres`, `fa_redis`, `fa_backend`, `fa_frontend`) on ports 5432, 6379, 8000, and 5173.
+> - For manual development without Docker containers, the backend automatically connects to local PostgreSQL if available or falls back to high-performance SQLite WAL mode (`facial_asymmetry.db`).
 
 ---
 
-## 2. Automated Single-Shot Setup (Recommended)
+## 2. Automated Single-Shot Docker Setup & Runner (Recommended)
 
-### Method A: 1-Click Double-Click
-1. In Windows File Explorer, open the project root folder.
-2. Double-click **`setup.bat`**.
-3. The wizard will automatically:
-   - Verify Python, Node.js, and Git.
-   - Create the Python virtual environment (`.venv`).
-   - Install all backend dependencies (`backend/requirements.txt` + `backend/requirements-ai.txt`).
-   - Download the real Google MediaPipe 478-3D and Image Segmenter neural model weights.
-   - Configure `.env` from `.env.example`.
-   - Install all frontend npm dependencies (`frontend/package.json`).
-   - Initialize and seed the database with all 6 research roles, administrator accounts, and AI pipelines.
+To set up and run the entire platform on a new Windows machine in a single step:
 
-### Method B: Via PowerShell Console
-```powershell
-powershell -ExecutionPolicy Bypass -File .\setup.ps1
-```
+1. Ensure **Docker Desktop** is installed.
+2. In Windows File Explorer, simply double-click **`run.bat`**.
+3. The script automatically:
+   - Verifies Docker CLI & engine status (starting Docker Desktop if stopped).
+   - Configures `.env` from `.env.example`.
+   - Verifies and downloads Google MediaPipe neural weights (FaceLandmarker + Multiclass Segmenter).
+   - Executes `docker compose up --build -d` building both backend and frontend images.
+   - Waits for services to become healthy and opens your browser to **`http://localhost:5173`**.
+   - Provides live interactive options to view container logs (`L`), restart (`R`), or stop (`S`).
 
 ---
 
@@ -98,26 +91,22 @@ cd ..
 
 ---
 
-## 4. Starting the Application
+## 4. Platform Launch Options
 
-### Option A: 1-Click Launch with Docker PostgreSQL (Recommended for Development)
-Double-click **`start.bat`** (or execute `.\start.ps1` in PowerShell).
+### Option A: 1-Click Docker Runner (Recommended)
+Double-click **`run.bat`** (or execute `.\run.bat` in Command Prompt / PowerShell).
 
-This automatically:
-1. Detects Docker and brings up the **PostgreSQL 16** container (`docker compose up -d postgres`).
-2. Verifies TCP connectivity on port `5432`.
-3. Launches the **FastAPI Python Backend** (`http://127.0.0.1:8000`, Docs: `http://127.0.0.1:8000/docs`).
-4. Launches the **Vite React Frontend** (`http://localhost:5173`).
-5. Opens your default web browser to the Login page.
-
-### Option B: 1-Click Full Containerized Stack (Production / Isolated Mode)
-Double-click **`start_docker.bat`** (or execute `docker compose up --build -d`).
-
-Runs all 4 services inside Docker:
+Runs all 4 services inside Docker containers:
 - **`fa_postgres`**: PostgreSQL 16 on port `5432`
 - **`fa_redis`**: Redis 7 cache & broker on port `6379`
 - **`fa_backend`**: FastAPI backend on port `8000`
 - **`fa_frontend`**: Nginx Alpine serving React SPA & reverse proxying on port `5173`
+
+### Option B: Local Hybrid Development (PowerShell)
+For rapid hot-reloading frontend/backend code without rebuilding Docker images:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
 
 ### Option C: Manual Launch (Separate Terminals)
 
