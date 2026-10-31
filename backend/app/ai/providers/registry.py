@@ -444,7 +444,7 @@ class HTTPInferenceAdapter(BaseProviderAdapter):
 
     async def health_check(self) -> dict[str, Any]:
         if self.provider_name == "NVIDIA":
-            key = self.config.api_key or settings.NVIDIA_API_KEY
+            key = self.config.api_key or get_cached_setting_value("NVIDIA_API_KEY", settings.NVIDIA_API_KEY)
             if key:
                 return {
                     "ok": True,

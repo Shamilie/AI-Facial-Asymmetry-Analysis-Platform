@@ -39,6 +39,7 @@ async def test_database_backed_system_settings():
             assert "governance" in data
             settings_list = data["settings"]
             assert any(s["key"] == "GEMINI_API_KEY" for s in settings_list)
+            assert any(s["key"] == "NVIDIA_API_KEY" for s in settings_list)
 
             # 4. Read-only user cannot update settings (requires config:manage)
             res = await client.put(
@@ -48,7 +49,7 @@ async def test_database_backed_system_settings():
             )
             assert res.status_code == 403
 
-            # 5. Admin updates GEMINI_API_KEY in database table
+            # 5. Admin updates GEMINI_API_KEY and NVIDIA_API_KEY in database table
             new_key = "AIzaSyLiveDbConfiguredKey9999"
             res = await client.put(
                 "/admin/settings/GEMINI_API_KEY",
@@ -58,15 +59,29 @@ async def test_database_backed_system_settings():
             assert res.status_code == 200
             assert res.json()["data"]["updated"] is True
 
-            # 6. Verify database value is returned masked in settings list
+            nv_key = "nvapi-live-token-secret-8888"
+            res = await client.put(
+                "/admin/settings/NVIDIA_API_KEY",
+                headers=admin_headers,
+                json={"value": nv_key},
+            )
+            assert res.status_code == 200
+            assert res.json()["data"]["updated"] is True
+
+            # 6. Verify database values are returned masked in settings list
             res = await client.get("/admin/settings", headers=admin_headers)
             gemini_setting = next(s for s in res.json()["data"]["settings"] if s["key"] == "GEMINI_API_KEY")
             assert gemini_setting["is_configured"] is True
             assert gemini_setting["value"] == "AIzaSy...9999"  # Masked!
 
-            # 7. Verify runtime service resolves the new key from database
+            nv_setting = next(s for s in res.json()["data"]["settings"] if s["key"] == "NVIDIA_API_KEY")
+            assert nv_setting["is_configured"] is True
+            assert nv_setting["value"] == "nvapi-...8888"  # Masked!
+
+            # 7. Verify runtime service resolves the new keys from database
             resolved_key = get_cached_setting_value("GEMINI_API_KEY")
             assert resolved_key == new_key
+            assert get_cached_setting_value("NVIDIA_API_KEY") == nv_key
 
             # 8. Verify audit log entry was created for config.update
             audit_res = await client.get("/admin/audit-logs?action_type=config.update", headers=admin_headers)

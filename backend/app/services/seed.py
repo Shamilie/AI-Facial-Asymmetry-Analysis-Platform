@@ -212,6 +212,20 @@ async def _ensure_system_settings_seeded(db: AsyncSession) -> None:
             True,
         ),
         (
+            "NVIDIA_API_KEY",
+            getattr(settings, "NVIDIA_API_KEY", "") or "",
+            "AI & Models",
+            "NVIDIA NIM Cloud API Key for accelerated facial landmark and mesh inference (nvapi-...)",
+            True,
+        ),
+        (
+            "CUSTOM_GPU_API_KEY",
+            getattr(settings, "CUSTOM_GPU_API_KEY", "") or "",
+            "AI & Models",
+            "API Key / Auth token for external custom GPU inference cluster (DECA / FLAME / U-Net)",
+            True,
+        ),
+        (
             "ALLOW_EXTERNAL_AI_UPLOADS",
             "false",
             "Security & Privacy",
