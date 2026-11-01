@@ -11,13 +11,32 @@ echo.
 cd /d "%~dp0"
 
 :: -----------------------------------------------------------------------------
+:: STEP 0: Check Administrator Privileges & Write Permissions
+:: -----------------------------------------------------------------------------
+net session >nul 2>&1
+set "IS_ADMIN=0"
+if %ERRORLEVEL% EQU 0 set "IS_ADMIN=1"
+
+:: Test directory write permission
+copy /y nul "%~dp0.perm_test" >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo [INFO] Running in a protected directory. Requesting Administrator elevation...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath cmd.exe -ArgumentList '/c', '\"\"%~f0\"\"' -Verb RunAs"
+    exit /b
+)
+del "%~dp0.perm_test" >nul 2>&1
+
+:: Unblock downloaded files if marked by Windows SmartScreen / Zone.Identifier
+powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Get-ChildItem -Path '%~dp0' -Recurse | Unblock-File -ErrorAction SilentlyContinue }" >nul 2>&1
+
+:: -----------------------------------------------------------------------------
 :: STEP 1: Verify Docker Installation
 :: -----------------------------------------------------------------------------
 echo [1/6] Checking Docker installation...
 
 where docker >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARN] 'docker' command was not found in PATH.
+    echo [WARN] 'docker' command was not found in standard PATH.
     echo Checking standard Docker Desktop installation paths...
     if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" (
         set "PATH=%PATH%;%ProgramFiles%\Docker\Docker\resources\bin"
@@ -35,11 +54,31 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 :: -----------------------------------------------------------------------------
-:: STEP 2: Check / Start Docker Engine Daemon
+:: STEP 2: Check / Start Docker Engine Daemon & Named Pipe Permissions
 :: -----------------------------------------------------------------------------
 echo [2/6] Checking Docker daemon status...
+
 docker info >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
+    :: Check if failure is due to permission / named pipe access denied
+    for /f "tokens=*" %%e in ('docker info 2^>^&1') do (
+        echo %%e | findstr /i "access is denied unauthorized permission pipe" >nul
+        if !ERRORLEVEL! EQU 0 (
+            echo.
+            echo [WARN] Docker engine permission denied (named pipe access restriction).
+            echo        Error: %%e
+            if "!IS_ADMIN!"=="0" (
+                echo [INFO] Automatically relaunching with Administrator privileges...
+                timeout /t 2 >nul
+                powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath cmd.exe -ArgumentList '/c', '\"\"%~f0\"\"' -Verb RunAs"
+                exit /b
+            ) else (
+                echo [INFO] Attempting to ensure current user is in 'docker-users' group...
+                net localgroup docker-users "%USERNAME%" /add >nul 2>&1
+            )
+        )
+    )
+
     echo [INFO] Docker daemon is not active. Attempting to start Docker Desktop...
     if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" (
         start "" "%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
@@ -58,6 +97,7 @@ if %ERRORLEVEL% NEQ 0 (
         echo.
         echo [ERROR] Docker daemon did not start in time.
         echo Please ensure Docker Desktop is running and try again.
+        echo If you see UnauthorizedAccessException, right-click run.bat and select 'Run as administrator'.
         echo.
         pause
         exit /b 1
@@ -94,7 +134,7 @@ if exist ".git" (
 )
 
 :: -----------------------------------------------------------------------------
-:: STEP 4: Environment Setup (.env and AI model weights)
+:: STEP 4: Environment Setup (.env and AI model weights via native curl)
 :: -----------------------------------------------------------------------------
 echo [4/6] Verifying environment and model weights...
 
@@ -105,18 +145,34 @@ if not exist ".env" (
     )
 )
 
-:: Check if MediaPipe AI model weights exist
+:: Ensure models directory exists
 set "MODEL_DIR=backend\models\mediapipe"
-if not exist "%MODEL_DIR%" mkdir "%MODEL_DIR%"
+if not exist "%MODEL_DIR%" mkdir "%MODEL_DIR%" >nul 2>&1
+
+:: Native Windows curl.exe is used to prevent PowerShell UnauthorizedAccessException
+where curl.exe >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set "CURL_CMD=curl.exe -fSL --create-dirs"
+) else (
+    set "CURL_CMD="
+)
 
 if not exist "%MODEL_DIR%\face_landmarker.task" (
     echo [INFO] Downloading MediaPipe 478-pt 3D Face Landmarker model (~3.8 MB)...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task' -OutFile '%MODEL_DIR%\face_landmarker.task'"
+    if defined CURL_CMD (
+        %CURL_CMD% -o "%MODEL_DIR%\face_landmarker.task" "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+    ) else (
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task', '%MODEL_DIR%\face_landmarker.task')"
+    )
 )
 
 if not exist "%MODEL_DIR%\selfie_multiclass_256x256.tflite" (
     echo [INFO] Downloading Multiclass Face Segmentation model (~16.4 MB)...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite' -OutFile '%MODEL_DIR%\selfie_multiclass_256x256.tflite'"
+    if defined CURL_CMD (
+        %CURL_CMD% -o "%MODEL_DIR%\selfie_multiclass_256x256.tflite" "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite"
+    ) else (
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite', '%MODEL_DIR%\selfie_multiclass_256x256.tflite')"
+    )
 )
 
 :: -----------------------------------------------------------------------------
@@ -138,6 +194,7 @@ echo --- Phase 1: Reusing PostgreSQL 16 and Redis (no rebuild) ---
 if !ERRORLEVEL! NEQ 0 (
     echo.
     echo [ERROR] Failed to start PostgreSQL/Redis services.
+    echo If this is an authorization issue, right-click run.bat and choose 'Run as administrator'.
     pause
     exit /b !ERRORLEVEL!
 )
@@ -154,13 +211,26 @@ if !ERRORLEVEL! NEQ 0 (
 )
 
 :: -----------------------------------------------------------------------------
-:: STEP 6: Service Health Check & Browser Launch
+:: STEP 6: Service Health Check (via curl) & Browser Launch
 :: -----------------------------------------------------------------------------
 echo.
 echo [6/6] Verifying services and opening browser...
 
-:: Brief wait for Nginx and backend to settle
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ready = $false; for ($i = 0; $i -lt 15; $i++) { try { $res = Invoke-WebRequest -Uri 'http://localhost:5173' -UseBasicParsing -TimeoutSec 2; if ($res.StatusCode -eq 200) { $ready = $true; break } } catch { Start-Sleep -Seconds 1 } }; exit $(if ($ready) { 0 } else { 1 })" >nul 2>&1
+:: Native curl.exe polling loop (avoids PowerShell invocation)
+where curl.exe >nul 2>&1
+if !ERRORLEVEL! EQU 0 (
+    set /a probe_attempts=0
+    :PROBE_LOOP
+    timeout /t 2 >nul
+    set /a probe_attempts+=1
+    curl.exe -s -o nul -w "%%{http_code}" http://localhost:5173 | findstr "200 301 302" >nul 2>&1
+    if !ERRORLEVEL! EQU 0 goto PROBE_DONE
+    if !probe_attempts! GEQ 15 goto PROBE_DONE
+    goto PROBE_LOOP
+    :PROBE_DONE
+) else (
+    timeout /t 4 >nul
+)
 
 start http://localhost:5173
 
@@ -171,6 +241,7 @@ echo ====================================================================
 echo   * Web Application:     http://localhost:5173
 echo   * Backend API:         http://localhost:8000
 echo   * Interactive Docs:    http://localhost:5173/docs  (or :8000/docs)
+echo   * Platform Manual:     http://localhost:5173/admin/instructions
 echo.
 echo   Default Development Accounts:
 echo   - Administrator:       admin@faplatform.org     / Research@2026

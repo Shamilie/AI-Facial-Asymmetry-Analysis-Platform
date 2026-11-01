@@ -170,15 +170,28 @@ Run PowerShell with bypass permission:
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
-Or simply double-click **`setup.bat`** or **`start.bat`**, which automatically bypass execution restrictions.
+Or simply double-click **`run.bat`**, which automatically bypasses execution restrictions.
 
-### Q2: Port 8000 or Port 5173 is already in use
+### Q2: "UnauthorizedAccessException" or "Access is denied" on Windows 11
+This typically happens when Docker Named Pipe access is restricted or files are blocked:
+1. **Quickest Fix**: Right-click **`run.bat`** and choose **"Run as administrator"**. The updated script automatically detects restricted environments and elevates.
+2. **Add User to `docker-users` Group**: In an elevated PowerShell / Command Prompt:
+   ```cmd
+   net localgroup docker-users "%USERNAME%" /add
+   ```
+   Then sign out and back into Windows (or restart Docker Desktop).
+3. **Unblock Files**: If the code was downloaded as a ZIP archive from GitHub:
+   ```powershell
+   Get-ChildItem -Recurse | Unblock-File
+   ```
+
+### Q3: Port 8000 or Port 5173 is already in use
 Find and stop any previous instances running on the port:
 ```powershell
 Get-Process | Where-Object { $_.ProcessName -match "python|node" } | Stop-Process -Force
 ```
 
-### Q3: How to test that everything works
+### Q4: How to test that everything works
 Run the integrated backend test suite:
 ```powershell
 .\.venv\Scripts\Activate.ps1

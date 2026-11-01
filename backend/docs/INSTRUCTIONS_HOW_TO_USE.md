@@ -352,6 +352,20 @@ Double-click **`run.bat`** in the project root directory.
 **Q4: "How do I stop or restart all containers?"**  
 *Answer*: In the `run.bat` console window, press `S` to stop containers, `R` to restart them, or `L` to stream live log output. Alternatively, run `docker-compose down` in any terminal.
 
+**Q5: "Why am I getting 'UnauthorizedAccessException' or 'Access is denied' on Windows 11?"**  
+*Answer*: On Windows 11, this occurs if:
+1. **Docker Engine Named Pipe Access**: Your Windows user account is not a member of the local `docker-users` group.  
+   *Fix*: Right-click **`run.bat`** and select **"Run as administrator"**. The script automatically handles elevation and pipe access. Alternatively, in an elevated Command Prompt / PowerShell, add your user:
+   ```cmd
+   net localgroup docker-users "%USERNAME%" /add
+   ```
+   (Then restart Docker Desktop or sign out and back into Windows).
+2. **Windows Mark of the Web (MOTW)**: If you downloaded the repository as a `.zip` archive from GitHub, Windows 11 flags files with `Zone.Identifier`.  
+   *Fix*: The updated `run.bat` automatically unblocks files at startup. You can also manually run in PowerShell:
+   ```powershell
+   Get-ChildItem -Recurse | Unblock-File
+   ```
+
 ---
 
 *AI Facial Asymmetry Analysis Platform — Research Documentation & Operating Manual (2026).*
