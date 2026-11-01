@@ -2344,83 +2344,270 @@ export const PlatformInstructionsPage: React.FC = () => {
               <Card id="section-4">
                 <CardContent>
                   <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
-                    4. Step-by-Step Clinical Research Workflow
+                    4. End-to-End Client User Guide: From Patient Enrollment to Report Generation
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-                    Follow this sequential operational procedure for every study visit:
+                    Follow this complete step-by-step operational procedure for enrolling subjects, conducting AI analysis, and exporting publication-ready reports:
                   </Typography>
 
-                  <Stack spacing={2}>
-                    <Paper variant="outlined" sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                        Step 4.1: Patient Enrollment
+                  <Stack spacing={2.5}>
+                    {/* Step 4.1 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 1" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Sign In with Assigned Role Credentials
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6, mb: 1 }}>
+                        Open <code>http://localhost:5173</code> in your browser. Log in using your assigned research credentials:
                       </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        Go to <strong>Patients</strong> &rarr; <strong>New Patient</strong>. Record de-identified study ID (e.g. <code>FA-2026-001</code>), fracture anatomical zone (Condyle, Angle, Body, Symphysis, Ramus), and surgical fixation technique (e.g. ORIF with miniplates).
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+                        <Chip size="small" variant="outlined" label="Coordinator: coordinator@faplatform.org" />
+                        <Chip size="small" variant="outlined" label="Examiner: examiner@faplatform.org" />
+                        <Chip size="small" variant="outlined" label="Administrator: admin@faplatform.org" />
+                        <Chip size="small" variant="outlined" label="Password: Research@2026" />
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        Upon signing in, you are greeted with the Clinical Dashboard showing cohort overview and active study visits.
                       </Typography>
                     </Paper>
 
-                    <Paper variant="outlined" sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                        Step 4.2: Schedule Study Visit & Upload 4 Multi-Modal Views
+                    {/* Step 4.2 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 2" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Enroll a Study Patient (6-Step Registration Wizard)
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6, mb: 1.5 }}>
+                        1. Click <strong>Patients</strong> in the navigation sidebar (or go to <code>/patients</code>).<br />
+                        2. Click the <strong>"Register Patient"</strong> button.<br />
+                        3. Complete the 6-step registration wizard:
                       </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 1 }}>
-                        Create a study visit milestone and upload the four standardized views required for cross-validation:
-                      </Typography>
-                      <Grid container spacing={1}>
-                        <Grid size={{ xs: 6, sm: 3 }}>
-                          <Chip size="small" label="1. Frontal Photo" variant="outlined" sx={{ width: '100%' }} />
+                      <Grid container spacing={1.5}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.default' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main' }}>
+                              1. Identification & Consent
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Enter Patient Research ID (e.g. <code>FA-2026-001</code>), Hospital EMR ID, Consent Status (<code>Obtained</code>), and IRB Protocol Reference.
+                            </Typography>
+                          </Paper>
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 3 }}>
-                          <Chip size="small" label="2. Right Lateral" variant="outlined" sx={{ width: '100%' }} />
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.default' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main' }}>
+                              2. Demographics
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Record Subject Age at Enrollment (e.g. <code>32</code>) and Biological Sex (<code>Male</code> / <code>Female</code>).
+                            </Typography>
+                          </Paper>
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 3 }}>
-                          <Chip size="small" label="3. Left Lateral" variant="outlined" sx={{ width: '100%' }} />
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.default' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main' }}>
+                              3. Fracture Information
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Select Fracture Side (<code>Left</code> or <code>Right</code> strictly unilateral), AO/OTA Classification, Fracture Zone (Angle, Condyle, Body, Symphysis), and Injury Date.
+                            </Typography>
+                          </Paper>
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 3 }}>
-                          <Chip size="small" label="4. Panoramic OPG" variant="outlined" sx={{ width: '100%' }} />
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.default' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main' }}>
+                              4. Surgical Information
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Enter Surgery Date, Fixation Technique (e.g. <code>ORIF with 2.0mm miniplates</code>), Surgical Approach (Intraoral/Submandibular), and Surgeon Name.
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.default' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main' }}>
+                              5. Longitudinal Schedule
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              The system auto-calculates the 5 protocol visit dates (Pre-Op, Post-Op 1 Wk, 6 Wks, 3 Mo, 6 Mo) anchored to your surgery date.
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.default' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main' }}>
+                              6. Review & Submit
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Verify all entered information and click <strong>"Submit & Enroll Patient"</strong> to register the subject.
+                            </Typography>
+                          </Paper>
                         </Grid>
                       </Grid>
                     </Paper>
 
-                    <Paper variant="outlined" sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                        Step 4.3: Execute 11-Stage AI Pipeline
+                    {/* Step 4.3 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 3" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Select Study Visit & Upload 4 Multi-Modal Images
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6, mb: 1.5 }}>
+                        From the Patient Profile or the <strong>Visits</strong> menu, click <strong>"Images"</strong> next to the target visit (e.g. <code>PreOperative</code> or <code>PostOp6Weeks</code>). Upload the 4 protocol views:
                       </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        Click <strong>Run AI Analysis Pipeline</strong>. The automated engine performs landmark extraction (MediaPipe 478 points), anatomical segmentation, quality checks, 3D surface mesh reconstruction, Dijkstra geodesic path compute, and automated draft report generation.
+                      <Grid container spacing={1.5}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                              1. Standardized Frontal Photograph
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Natural Head Position (NHP), neutral facial expression, lips closed. <strong>Must include physical ruler or circular calibration sticker</strong> on forehead or chin.
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                              2. Right Lateral Photograph
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              True 90° right profile demonstrating the right mandibular ramus, gonion, and chin projection.
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                              3. Left Lateral Photograph
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              True 90° contralateral left profile demonstrating the contralateral ramus and jaw angle.
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Paper variant="outlined" sx={{ p: 1.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                              4. Orthopantomogram (OPG)
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Digital panoramic radiograph demonstrating bilateral condyles, rami, gonial angles, and fixation hardware.
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+
+                    {/* Step 4.4 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 4" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Run the Automated 11-Stage AI Analysis Pipeline
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6, mb: 1 }}>
+                        Click the prominent <strong>"Analyze"</strong> or <strong>"Run AI Analysis Pipeline"</strong> button. The system streams real-time progress across all 11 pipeline stages:
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.7, bgcolor: 'background.default', p: 1.5, borderRadius: 1 }}>
+                        <strong>Stage 1</strong> Validation &rarr; <strong>Stage 2</strong> Preprocessing &rarr; <strong>Stage 3</strong> 478-pt Landmark Extraction (MediaPipe/NIM) &rarr; <strong>Stage 4</strong> Anatomical Segmentation &rarr; <strong>Stage 5</strong> Head Pose Quality Check &rarr; <strong>Stage 6</strong> 3D Mesh Reconstruction &rarr; <strong>Stage 7</strong> Dijkstra Geodesic Compute &rarr; <strong>Stage 8</strong> Biomechanical Analysis &rarr; <strong>Stage 9</strong> Calibration &rarr; <strong>Stage 10</strong> Asymmetry Calculation &rarr; <strong>Stage 11</strong> Narrative Report Drafting.
                       </Typography>
                     </Paper>
 
-                    <Paper variant="outlined" sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                        Step 4.4: Physical Scale Calibration (Fiducial Ruler & OPG Magnification)
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        In the <strong>Scale Calibration</strong> tab, calibrate image pixels to real millimeters:
-                        <br />
-                        &bull; <strong>Photos</strong>: Select 2 points on the circular or linear ruler marker and enter physical length in mm (<code>Scale = known_mm / measured_px</code>).
-                        <br />
-                        &bull; <strong>OPG Radiograph</strong>: Enter the panoramic device magnification factor (typically <code>1.25x</code>).
-                      </Typography>
-                    </Paper>
-
-                    <Paper variant="outlined" sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                        Step 4.5: Interactive SVG/Canvas Landmark Review & Examiner Refinement
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        In the <strong>Landmarks</strong> tab, zoom (up to 400%) and drag any predicted point (Gonion, Cheilion, Exocanthion, Menton) to anatomical boundaries. The system retains original AI predictions alongside your adjustments in the audit ledger.
+                    {/* Step 4.5 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 5" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Perform Physical Scale Calibration (Pixels to Millimeters)
+                        </Typography>
+                      </Stack>
+                      <Alert severity="info" sx={{ mb: 1.5, fontSize: '0.8rem' }}>
+                        Medical research standards strictly reject arbitrary screen PPI (1 mm ≠ 3.78 px). Images must be physically calibrated to enable verified millimeter reporting!
+                      </Alert>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6 }}>
+                        1. Open the <strong>Scale Calibration</strong> tab.<br />
+                        2. <strong>Photographs</strong>: Select <strong>"Two-Point Ruler Calibration"</strong>, click Point A and Point B on the visible ruler marker in the image, enter known physical distance in mm (e.g. <code>20.0 mm</code>), and click <strong>"Apply Calibration"</strong>.<br />
+                        3. <strong>OPG Radiograph</strong>: Select <strong>"OPG Magnification"</strong>, enter machine magnification factor (e.g. <code>1.25x</code>), and click <strong>"Apply Calibration"</strong>.<br />
+                        4. The status badge turns green: <code>Calibrated (mm)</code>.
                       </Typography>
                     </Paper>
 
-                    <Paper variant="outlined" sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                        Step 4.6: Review Asymmetry Indices & Export Multi-Format Reports
+                    {/* Step 4.6 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 6" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Review & Refine AI Landmarks on Interactive Canvas (SVG)
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6 }}>
+                        1. Navigate to the <strong>Landmarks</strong> tab.<br />
+                        2. <strong>Zoom & Pan</strong>: Use mouse wheel to zoom in up to 400% for sub-millimeter precision; drag to pan across high-resolution imagery.<br />
+                        3. <strong>Drag to Refine</strong>: Click and drag any predicted landmark (Gonion, Cheilion, Exocanthion, Menton) to anatomical boundaries.<br />
+                        4. <strong>Dual-Coordinate Audit Trail</strong>: The platform permanently stores original AI predictions alongside your examiner adjustments with timestamped clinical rationale.<br />
+                        5. Click <strong>"Save & Approve Landmarks"</strong>.
                       </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        Review bilateral differences: Absolute Delta |R - L| (in mm) and Asymmetry Index AI % = (|R - L| / (R + L)) * 100%. Export publication-ready comprehensive PDF dossiers, CSV measurement sheets, Excel workbooks, or 3D OBJ/PLY meshes.
+                    </Paper>
+
+                    {/* Step 4.7 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 7" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Inspect 3D Face Reconstruction & Dijkstra Geodesic Paths
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6 }}>
+                        1. Open the <strong>3D Reconstruction</strong> tab to interact with the Three.js WebGL viewport.<br />
+                        2. Left-click drag to rotate geometry in 3D; right-click drag to pan; mouse wheel to zoom.<br />
+                        3. Inspect <strong>Dijkstra Geodesic Paths</strong> across the curved facial geometry (measuring true soft-tissue surface curvature rather than flat 2D lines).<br />
+                        4. Optional: Click <strong>"Download .OBJ"</strong> or <strong>"Download .PLY"</strong> to export 3D files for external CAD or 3D printing.
                       </Typography>
+                    </Paper>
+
+                    {/* Step 4.8 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 8" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Review Quantitative Asymmetry Indices & Recovery Trajectory
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6 }}>
+                        1. Open the <strong>Asymmetry Analysis</strong> tab to view paired bilateral measurements (Gonion Go-R vs Go-L, Cheilion Ch-R vs Ch-L, Exocanthion, Subnasale to Menton midline deviation).<br />
+                        2. Review calculated mathematical outputs: Absolute Delta |R - L| in mm and Asymmetry Index AI % = (|R - L| / (R + L)) * 100%.<br />
+                        3. Review the <strong>Longitudinal Recovery Trajectory Chart</strong> tracking symmetry improvement across all 5 visits toward normal threshold (&le; 3%).
+                      </Typography>
+                    </Paper>
+
+                    {/* Step 4.9 */}
+                    <Paper variant="outlined" sx={{ p: 2.5, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Chip size="small" color="primary" label="Step 9" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          Examiner Sign-Off & Multi-Format Research Report Generation
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: '0.86rem', lineHeight: 1.6, mb: 1 }}>
+                        1. Click <strong>"Examiner Review & Sign-Off"</strong>, enter clinical summary notes, and sign off the visit.<br />
+                        2. Navigate to <strong>Reports</strong> (or click <strong>"Generate Research Report"</strong>).<br />
+                        3. Select and download your desired export format:
+                      </Typography>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        <Chip size="small" label="Comprehensive PDF Dossier (13 Sections)" color="primary" />
+                        <Chip size="small" label="Excel Spreadsheet (.xlsx)" variant="outlined" />
+                        <Chip size="small" label="CSV Measurement Sheets" variant="outlined" />
+                        <Chip size="small" label="JSON Clinical Record" variant="outlined" />
+                        <Chip size="small" label="3D Polygon Meshes (.OBJ, .PLY)" variant="outlined" />
+                      </Stack>
                     </Paper>
                   </Stack>
                 </CardContent>

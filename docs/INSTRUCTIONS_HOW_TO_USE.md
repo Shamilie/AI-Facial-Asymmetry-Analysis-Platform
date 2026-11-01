@@ -90,116 +90,202 @@ flowchart TD
     H --> I[9. Sign-off & Export Reports]
 ```
 
-### Step 4.1: Enrolling a Patient
-1. Navigate to **Patients** in the left navigation sidebar.
-2. Click **"+ New Patient"**.
-3. Complete the enrollment form:
-   - **De-identified Study ID**: Format `FA-2026-XXXX` (maintains privacy).
-   - **Demographics**: Biological sex, age at injury.
-   - **Fracture Anatomy**: Unilateral fracture location:
-     - *Condyle / Subcondyle*
-     - *Angle*
-     - *Body*
-     - *Symphysis / Parasymphysis*
-     - *Ramus*
-   - **Fixation Protocol**: Treatment classification (e.g. *ORIF with 2.0mm miniplates*, *Lag screw fixation*, *Closed reduction with IMF*).
-4. Click **Save Patient Record**.
+## 4. End-to-End Client User Guide: From Patient Enrollment to Report Generation
 
-### Step 4.2: Scheduling & Initializing Study Visits
-1. From the Patient Details page, click **"Add Study Visit"**.
-2. Select the protocol visit milestone (`PreOperative`, `PostOp1Week`, `PostOp6Weeks`, `PostOp3Months`, `PostOp6Months`).
-3. Set the clinical examination date and assigning examiner.
-4. The visit dashboard opens showing the **4 Required View Slots**.
+This section provides the complete step-by-step walkthrough for clinical research coordinators, examiners, and investigators using the application interface.
 
-### Step 4.3: Standardized Multi-Modal Image Acquisition & Upload
-Upload the four standardized views required for bilateral asymmetry validation:
+```mermaid
+flowchart TD
+    A["1. Sign In (Research Credentials)"] --> B["2. Enroll Study Patient (6-Step Wizard)"]
+    B --> C["3. Schedule Study Visit (5 Protocol Milestones)"]
+    C --> D["4. Upload 4 Multi-Modal Images"]
+    D --> E["5. Run Automated 11-Stage AI Pipeline"]
+    E --> F["6. Perform Physical Scale Calibration"]
+    F --> G["7. Review & Refine SVG Landmarks"]
+    G --> H["8. Inspect 3D Reconstruction & Geodesics"]
+    H --> I["9. Review Bilateral Asymmetry Indices"]
+    I --> J["10. Examiner Sign-Off & Generate Reports"]
+```
 
-1. **Standardized Frontal Facial Photo**:
-   - Patient in Natural Head Position (NHP), neutral facial expression, lips gently closed.
-   - Must include a physical millimeter ruler or circular calibration sticker affixed to the mid-forehead or chin.
-2. **Right Lateral Facial Photo**:
-   - Exact 90° profile view demonstrating the right mandibular ramus, gonial angle, and pogonion.
-3. **Left Lateral Facial Photo**:
-   - Exact 90° contralateral profile view.
-4. **Orthopantomogram (OPG)**:
-   - Digital panoramic radiograph depicting condylar heights, ramal symmetry, and fracture reduction plates.
+---
 
-*Supported formats*: `.jpg`, `.jpeg`, `.png`, `.webp`, `.dcm` (DICOM). Max size: 25 MB per image.
+### Step 4.1: Sign In & Authentication
+1. Open your browser and navigate to **`http://localhost:5173`**.
+2. On the **Login Page**, enter your assigned credentials:
+   - **Research Coordinator**: `coordinator@faplatform.org` / `Research@2026`
+   - **Clinician / Examiner**: `examiner@faplatform.org` / `Research@2026`
+   - **System Administrator**: `admin@faplatform.org` / `Research@2026`
+3. Click **"Sign In to Research Platform"**.
+4. You are directed to the **Clinical Research Dashboard**, displaying active patient cohorts, pending visit reviews, and asymmetry recovery statistics.
 
-### Step 4.4: 11-Stage AI Pipeline Execution & Real-Time Monitoring
-1. Once images are uploaded, click **"Run AI Analysis Pipeline"**.
-2. The platform initiates the automated 11-stage processing engine with live Server-Sent Events (SSE) streaming:
-   - **Stage 1: Validation** — Checks image integrity, resolution, lighting, and aspect ratio.
+---
+
+### Step 4.2: Enrolling a New Study Patient (6-Step Registration Wizard)
+1. In the left navigation menu, click **Patients** (or navigate to `/patients`).
+2. Click the **"Register Patient"** button in the upper-right corner.
+3. Complete the 6-step registration wizard:
+
+#### Wizard Step 1: Identification & Consent
+- **Patient Research ID**: Enter a standardized de-identified code (e.g. `FA-2026-001` or `SYNTH-UMF-008`).
+- **Hospital Record ID / EMR Reference**: (e.g. `HOSP-OMFS-2026`).
+- **Informed Consent Status**: Select **`Obtained`** from the dropdown.
+- **Consent Document Reference**: Enter your IRB protocol reference (e.g. `IRB-UMF-2026-SIGNED`).
+- **Enrollment Date**: Defaults to today's date.
+- Click **"Next: Demographics"**.
+
+#### Wizard Step 2: Demographics
+- **Age at Enrollment**: Enter subject's age in years (e.g. `32`).
+- **Biological Sex**: Select **`Male`**, **`Female`**, or **`Other`**.
+- Click **"Next: Fracture Information"**.
+
+#### Wizard Step 3: Fracture Information
+- **Fracture Side**: Select **`Left`** or **`Right`** (strictly unilateral).
+- **AO/OTA Classification**: Select or enter classification (e.g. *AO/OTA 91-B1 Displaced Unilateral Mandibular Angle Fracture*).
+- **Anatomical Fracture Location**: (e.g. *Left mandibular angle and inferior border*).
+- **Injury Date & Mechanism**: Enter trauma date and cause (e.g. *Road traffic accident / fall*).
+- **Clinical Notes**: Note any visible facial deviation or trismus.
+- Click **"Next: Surgical Information"**.
+
+#### Wizard Step 4: Surgical Information
+- **Surgery Date**: Enter the date of open reduction and internal fixation (ORIF).
+- **Fixation Technique**: (e.g. *ORIF — Two 2.0mm titanium miniplates along Champy's ideal line of osteosynthesis and inferior mandibular border*).
+- **Surgical Approach**: Select *Intraoral vestibular incision*, *Transmasseteric*, or *Submandibular*.
+- **Hardware & Screw Details**: (e.g. *2.0mm 4-hole and 6-hole titanium miniplates with 6mm monocortical screws*).
+- **Operating Surgeon**: Enter lead maxillofacial surgeon's name.
+- Click **"Next: Follow-up Schedule"**.
+
+#### Wizard Step 5: Follow-up Schedule
+- The system **automatically computes all 5 longitudinal visit milestones** anchored to your surgical date:
+  1. `PreOperative` (Baseline)
+  2. `PostOp1Week` (Surgery + 7 days)
+  3. `PostOp6Weeks` (Surgery + 42 days)
+  4. `PostOp3Months` (Surgery + 90 days)
+  5. `PostOp6Months` (Surgery + 180 days)
+- Click **"Next: Review & Save"**.
+
+#### Wizard Step 6: Review & Submit
+- Review the patient summary.
+- Click **"Submit & Enroll Patient"**. The patient record is saved with complete audit logging.
+
+---
+
+### Step 4.3: Opening a Study Visit & Uploading 4 Multi-Modal Views
+1. From the Patient Profile or the **Visits** menu (`/visits`), find the visit you wish to analyze (e.g. `PreOperative` or `PostOp6Weeks`).
+2. Click **"Images"** to open the **Image Acquisition & Upload** workspace.
+3. You will see 4 dedicated upload panels corresponding to the study protocol:
+   - **Panel 1: Standardized Frontal Facial Photograph**
+     - Natural Head Position (NHP), neutral expression, lips gently closed.
+     - *Crucial*: Must include a physical millimeter ruler or circular calibration sticker affixed to the forehead or chin.
+   - **Panel 2: Right Lateral Facial Photograph**
+     - True 90° right profile demonstrating the right mandibular ramus, gonion, and profile projection.
+   - **Panel 3: Left Lateral Facial Photograph**
+     - True 90° contralateral left profile.
+   - **Panel 4: Orthopantomogram (OPG)**
+     - Digital panoramic radiograph depicting mandibular condylar heights, ramal symmetry, and fracture hardware.
+4. Click **"Upload Image"** on each panel or drag and drop your image files (`.jpg`, `.png`, `.webp`, or `.dcm`).
+5. An automated quality pre-check validates resolution, lighting, and aspect ratio.
+
+---
+
+### Step 4.4: Running the Automated 11-Stage AI Analysis Pipeline
+1. Once your images are uploaded, click the prominent **"Analyze"** or **"Run AI Analysis Pipeline"** button.
+2. The AI processing engine runs with real-time Server-Sent Events (SSE) streaming updates across all 11 stages:
+   - **Stage 1: Validation** — Checks file integrity, DICOM headers, and pixel dimensions.
    - **Stage 2: Preprocessing** — Normalizes illumination, contrast, and color balance.
-   - **Stage 3: FacialLandmarks** — Executes 478-point 3D neural landmark extraction (Google MediaPipe / NIM).
+   - **Stage 3: FacialLandmarks** — Extracts 478 3D neural landmarks (MediaPipe Tasks API / NVIDIA NIM).
    - **Stage 4: Segmentation** — Generates anatomical masks (face oval, lips, eyes, nasal dorsum).
-   - **Stage 5: QualityCheck** — Evaluates head rotation, roll, and tilt tolerances.
+   - **Stage 5: QualityCheck** — Evaluates head rotation, roll, and pitch tolerances.
    - **Stage 6: SurfaceReconstruction** — Synthesizes 3D triangular face mesh with depth estimation.
-   - **Stage 7: GeodesicCompute** — Calculates shortest surface paths along mesh curvature (Dijkstra algorithm).
+   - **Stage 7: GeodesicCompute** — Computes Dijkstra shortest surface paths along facial curvature.
    - **Stage 8: BiomechanicalAnalysis** — Evaluates soft-tissue tension vectors across the mandibular border.
-   - **Stage 9: Calibration** — Detects physical markers and prompts examiner scale validation.
+   - **Stage 9: Calibration** — Prompts for physical scale calibration.
    - **Stage 10: AsymmetryCompute** — Calculates bilateral Euclidean, geodesic, and horizontal offsets.
-   - **Stage 11: ReportDrafting** — Synthesizes an executive narrative report via Google Gemini or local LLM.
+   - **Stage 11: ReportDrafting** — Synthesizes narrative findings via Google Gemini or local LLM.
+3. Once complete, click **"Proceed to Scale Calibration"**.
 
-### Step 4.5: Physical Scale Calibration (Ruler Fiducials & OPG Scaling)
+---
+
+### Step 4.5: Physical Scale Calibration (Converting Pixels to Millimeters)
 > [!IMPORTANT]
-> Uncalibrated measurements are marked with an orange alert badge: `Unscaled (px)`. They cannot be included in final statistical publications until calibrated.
+> Uncalibrated measurements are flagged with an orange warning: `Unscaled (px)`. Medical research publications reject arbitrary screen PPI (`1 mm ≠ 3.78 px`). Every image must be physically calibrated to millimeters!
 
-1. Open the **Scale Calibration** tab for each uploaded image.
-2. **For Photographic Views (Frontal, Laterals)**:
+1. Open the **Scale Calibration** tab (`/calibration/:visitId`).
+2. **For Photographic Views (Frontal, Right Lateral, Left Lateral)**:
    - Select **"Two-Point Ruler Calibration"**.
-   - Click Point A and Point B on the visible physical ruler or marker in the image.
-   - Enter the known physical length in millimeters (e.g. `20.0 mm`).
-   - The engine computes `Scale Factor = known_mm / measured_px`.
-3. **For OPG Radiographs**:
+   - On the interactive canvas, click **Point A** and **Point B** along the markings of your visible physical ruler or circular calibration sticker.
+   - Enter the known physical distance in millimeters (e.g. `20.0 mm` or `10.0 mm`).
+   - The engine automatically computes:
+     $$\text{Scale Factor (mm/pixel)} = \frac{\text{Known Length (mm)}}{\text{Measured Distance (pixels)}}$$
+   - Click **"Apply Calibration"**.
+3. **For OPG Panoramic Radiographs**:
    - Select **"OPG Magnification Factor"**.
-   - Input the machine-specific panoramic magnification index (typically `1.20x` to `1.30x`).
-   - Enter reference mandibular condyle-to-gonion known scale.
-4. Click **Apply Physical Scale**. All measurements instantly convert from pixels to verified millimeters (`mm`).
+   - Input your imaging unit's panoramic magnification coefficient (typically `1.20x` to `1.30x`, standard `1.25x`).
+   - Click **"Apply Calibration"**.
+4. The calibration status badge turns green: **`Calibrated (mm)`**. All measurements are converted to verified real-world millimeters.
 
-### Step 4.6: Interactive Landmark Review & Audit Refinement (SVG/Canvas)
-1. Navigate to the **Landmarks** tab.
-2. Select any landmark group (*Mandibular Border*, *Cheilion / Oral Commissures*, *Nasion / Exocanthion*, *Gonion / Menton*).
-3. Use the mouse wheel to zoom (up to 400%) and drag to pan across high-resolution imagery.
-4. Click and drag any predicted landmark to its precise anatomical boundary.
-5. When refined:
-   - The original AI coordinates (`predicted_x`, `predicted_y`) remain permanently archived in the database.
-   - The refined coordinates (`examiner_x`, `examiner_y`) are registered with examiner ID and timestamp.
-   - Enter an optional refinement clinical rationale (e.g., *"Adjusted left gonion 1.8mm laterally due to post-surgical soft tissue edema"*).
-6. Click **"Save & Approve Landmarks"**.
+---
 
-### Step 4.7: Interactive 3D Mesh Reconstruction & Dijkstra Geodesic Surface Paths
-1. Navigate to the **3D Reconstruction** tab.
-2. An interactive WebGL/Three.js 3D viewport renders the patient's reconstructed facial surface.
-3. Features:
-   - **Rotate & Inspect**: Left-click drag to tumble 3D geometry; right-click drag to translate; scroll to zoom.
-   - **Geodesic Path Visualization**: Renders true Dijkstra surface paths across the facial curvature rather than simple straight-line 2D projections.
-   - **Quality Grading**: Displays mesh completeness (`Complete`, `Partial`, `LowConfidence`).
-   - **Export 3D Asset**: Click **"Download .OBJ"** or **"Download .PLY"** to export for external CAD/stereolithography software.
+### Step 4.6: Interactive SVG Landmark Review & Human-in-the-Loop Refinement
+1. Navigate to the **Landmarks** tab (`/landmarks/:visitId`).
+2. An interactive high-resolution SVG overlay displays all extracted landmarks grouped by anatomical structure:
+   - *Mandibular Border & Jawline (Gonion, Menton, Pogonion)*
+   - *Oral Commissures (Cheilion Right & Left, Labiale Superius & Inferius)*
+   - *Midface & Orbits (Nasion, Subnasale, Exocanthion, Endocanthion)*
+3. **Navigation Controls**:
+   - **Zoom**: Scroll your mouse wheel to zoom in up to 400% for sub-millimeter precision.
+   - **Pan**: Click and drag empty space on the canvas to translate the view.
+   - **Refine**: Click and drag any landmark circle to reposition it to its exact anatomical boundary.
+4. **Dual-Coordinate Audit System**:
+   - When you move a landmark, the system **permanently preserves the original AI prediction** (`predicted_x`, `predicted_y`) and logs your manual adjustment (`examiner_x`, `examiner_y`).
+   - Enter an optional refinement reason in the prompt (e.g. *"Adjusted left gonion 1.8mm laterally due to residual post-traumatic soft-tissue edema"*).
+5. Click **"Save & Approve Landmarks"**.
 
-### Step 4.8: Quantitative Asymmetry Indices & Longitudinal Biostatistics
-1. Open the **Asymmetry Analysis** tab.
-2. View key bilateral paired anatomical landmarks:
-   - **Gonion (Go-R vs Go-L)**: Ramal and jaw angle symmetry.
-   - **Cheilion (Ch-R vs Ch-L)**: Oral commissure horizontal canting and lateral distance.
+---
+
+### Step 4.7: Interactive 3D Face Reconstruction & Dijkstra Geodesic Surface Paths
+1. Navigate to the **3D Reconstruction** tab (`/reconstruction/:visitId`).
+2. An interactive Three.js / WebGL 3D viewport renders the patient's reconstructed facial surface mesh:
+   - **Rotate**: Left-click and drag to rotate the face in 3D space.
+   - **Pan**: Right-click and drag to move horizontally or vertically.
+   - **Zoom**: Mouse wheel to zoom into specific anatomical zones.
+3. **Geodesic Path Inspection**:
+   - Toggle **"Show Geodesic Surface Paths"**.
+   - The platform renders the true Dijkstra shortest paths along the curved 3D surface rather than flat 2D straight-line projections, measuring the true anatomical stretch over the mandibular body and gonial angles.
+4. **3D Model Export**:
+   - Click **"Download .OBJ"** or **"Download .PLY"** to export the 3D polygon mesh for external stereolithography, CAD, or 3D printing.
+
+---
+
+### Step 4.8: Reviewing Bilateral Asymmetry Indices & Longitudinal Trajectory
+1. Navigate to the **Asymmetry Analysis** tab (`/measurements/:visitId`).
+2. Review the bilateral paired anatomical measurements:
+   - **Gonion (Go-R vs Go-L)**: Ramal height and mandibular angle symmetry.
+   - **Cheilion (Ch-R vs Ch-L)**: Oral commissure canting and horizontal distance.
    - **Exocanthion (Ex-R vs Ex-L)**: Lateral eye corner balance.
-   - **Subnasale to Menton (Sn-Me)**: Lower facial third vertical midline deviation.
-3. Review mathematical outputs:
-   - **Absolute Difference**: $\Delta = |R - L| \text{ (mm)}$
-   - **Asymmetry Index (AI %)**: $\text{AI} = \frac{|R - L|}{R + L} \times 100\%$
-   - **Midline Deviation**: Horizontal perpendicular offset from true facial midsagittal plane.
-4. **Longitudinal Trajectory Chart**:
-   - Directly graphs the patient's recovery trajectory across all completed visits.
-   - Demonstrates quantitative reduction of asymmetry index toward normal anatomical limits ($\le 3\%$).
+   - **Subnasale to Menton (Sn-Me)**: Vertical midline deviation of the chin.
+3. Key Mathematical Metrics:
+   - **Absolute Difference**:
+     $$\Delta = |R - L| \quad (\text{in mm})$$
+   - **Asymmetry Index (%)**:
+     $$\text{AI} = \frac{|R - L|}{R + L} \times 100\%$$
+   - **Midline Deviation**: Perpendicular horizontal offset from the true facial midsagittal plane.
+4. **Longitudinal Trajectory Recovery Chart**:
+   - Displays a dynamic line graph tracking the patient's Asymmetry Index across all completed visits:
+     $$\text{Pre-op} \longrightarrow \text{Post-op 1wk} \longrightarrow \text{Post-op 6wks} \longrightarrow \text{Post-op 3mo} \longrightarrow \text{Post-op 6mo}$$
+   - Quantitatively demonstrates the reduction of facial asymmetry toward normal anatomical symmetry thresholds ($\le 3\%$).
 
-### Step 4.9: 13-Section Research Reports & Multi-Format Export
-1. Click **"Generate Research Report"**.
-2. Select desired export format:
-   - **PDF Comprehensive Dossier**: Fully formatted publication report with high-resolution image overlays, landmark tables, asymmetry bar graphs, and clinical disclaimers.
-   - **CSV / Excel (.xlsx)**: Raw tabular measurements, ideal for import into SPSS, R, SAS, or STATA.
-   - **JSON Clinical Record**: Interoperable HL7/FHIR-compatible research data payload.
-   - **3D Mesh Files (.OBJ, .PLY)**: Standard polygon geometry.
-3. All report generations are logged to the immutable audit trail.
+---
+
+### Step 4.9: Examiner Sign-Off & Multi-Format Report Generation
+1. Click **"Examiner Review & Sign-Off"**.
+2. Select your examiner profile, enter clinical summary notes, and click **"Approve & Sign-Off Visit"**. The visit completion status advances to **`Completed`**.
+3. Navigate to **Reports** (or click **"Generate Research Report"**).
+4. Select your desired export format:
+   - **Comprehensive PDF Research Dossier**: Formatted publication report containing patient history, multi-modal image overlays, landmark tables, asymmetry bar charts, recovery curves, and non-diagnostic disclaimers.
+   - **Excel Workbook (`.xlsx`)**: Structured spreadsheet with raw Euclidean and geodesic measurements, calibration scale factors, and statistical summaries.
+   - **CSV Measurement Sheet**: Formatted for direct import into statistical software (SPSS, R, SAS, STATA).
+   - **JSON Clinical Record**: Interoperable research payload with complete dual-coordinate audit logs.
+5. Click **"Download Report"**. Your research report is generated and archived with an immutable audit log entry.
 
 ---
 
