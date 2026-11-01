@@ -37,6 +37,7 @@ import {
   AIExecutionMonitorPage,
   AIModelConfigPage,
   AuditLogsPage,
+  PlatformInstructionsPage,
   ProtocolConfigPage,
   SettingsPage,
   UserManagementPage,
@@ -258,6 +259,8 @@ export const App: React.FC = () => {
                   </PermissionRoute>
                 }
               />
+              <Route path="admin/instructions" element={<PlatformInstructionsPage />} />
+              <Route path="instructions" element={<PlatformInstructionsPage />} />
               <Route path="settings" element={<SettingsPage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />

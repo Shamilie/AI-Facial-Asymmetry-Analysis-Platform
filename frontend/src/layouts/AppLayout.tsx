@@ -38,6 +38,7 @@ import MemoryOutlinedIcon from '@mui/icons-material/MemoryOutlined';
 import MonitorHeartOutlinedIcon from '@mui/icons-material/MonitorHeartOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
@@ -179,6 +180,11 @@ const NAV_GROUPS: NavGroup[] = [
         path: '/admin/audit-logs',
         icon: <FactCheckOutlinedIcon fontSize="small" />,
         permissions: ['audit:read'],
+      },
+      {
+        label: 'Platform User Manual',
+        path: '/admin/instructions',
+        icon: <MenuBookOutlinedIcon fontSize="small" />,
       },
     ],
   },

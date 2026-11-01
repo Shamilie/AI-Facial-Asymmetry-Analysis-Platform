@@ -91,3 +91,36 @@ async def test_database_backed_system_settings():
             latest = audit_items[0]
             assert latest["action_type"] == "config.update"
             assert latest["entity_type"] == "system_setting"
+
+
+@pytest.mark.asyncio
+async def test_platform_instructions_endpoints():
+    await engine.dispose()
+    async with lifespan(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test/api/v1") as client:
+            r = await client.post(
+                "/auth/login",
+                json={"email": "admin@faplatform.org", "password": "Research@2026"},
+            )
+            assert r.status_code == 200
+            token = r.json()["data"]["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # 1. Fetch instructions content
+            res = await client.get("/admin/instructions", headers=headers)
+            assert res.status_code == 200
+            data = res.json()["data"]
+            assert "title" in data
+            assert "content" in data
+            assert "sections" in data
+            assert len(data["sections"]) >= 5
+            assert "AI Facial Asymmetry Analysis Platform" in data["content"]
+            assert data["size_bytes"] > 0
+
+            # 2. Download markdown file
+            dl_res = await client.get("/admin/instructions/download", headers=headers)
+            assert dl_res.status_code == 200
+            assert "attachment;" in dl_res.headers.get("content-disposition", "")
+            assert "text/markdown" in dl_res.headers.get("content-type", "")
+            assert len(dl_res.content) > 0

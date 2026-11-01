@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -15,8 +19,10 @@ import {
   FormControl,
   FormControlLabel,
   Grid2 as Grid,
+  InputAdornment,
   InputLabel,
   MenuItem,
+  Paper,
   Select,
   Stack,
   Switch,
@@ -41,6 +47,19 @@ import SecurityIcon from '@mui/icons-material/Security';
 import PublishIcon from '@mui/icons-material/Publish';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
+import ViewInArOutlinedIcon from '@mui/icons-material/ViewInArOutlined';
+import CompareArrowsOutlinedIcon from '@mui/icons-material/CompareArrowsOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, extractErrorMessage } from '@/services/api';
 import {
@@ -1583,6 +1602,7 @@ export const ProtocolConfigPage: React.FC = () => {
 // Settings & Security Page
 // ============================================================================
 export const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [currentPassword, setCurrentPassword] = useState<string>('');
@@ -1667,6 +1687,63 @@ export const SettingsPage: React.FC = () => {
       )}
 
       <Stack spacing={2.5}>
+        {/* PLATFORM USER MANUAL & INSTRUCTION GUIDE CARD */}
+        <Card sx={{ border: '1px solid', borderColor: 'primary.main', bgcolor: 'background.paper', boxShadow: 1 }}>
+          <CardContent>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              spacing={2}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 1.5,
+                    bgcolor: 'primary.50',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'primary.main',
+                    border: '1px solid',
+                    borderColor: 'primary.light',
+                  }}
+                >
+                  <MenuBookOutlinedIcon />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Platform User Manual & Operating Instructions
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Official operating manual covering patient enrollment, 4 multi-modal views, 11-stage AI pipeline, physical scale calibration, and data governance.
+                  </Typography>
+                </Box>
+              </Stack>
+              <Stack direction="row" spacing={1.5}>
+                <Button
+                  variant="contained"
+                  startIcon={<MenuBookOutlinedIcon fontSize="small" />}
+                  onClick={() => navigate('/admin/instructions')}
+                >
+                  Open User Guide
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadOutlinedIcon fontSize="small" />}
+                  component="a"
+                  href="/api/v1/admin/instructions/download"
+                  target="_blank"
+                >
+                  Download .MD
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+
         {/* TOP SECTION: Database-Backed System Settings & API Keys */}
         <Card>
           <CardContent>
@@ -1881,6 +1958,632 @@ export const SettingsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+    </Box>
+  );
+};
+
+// ============================================================================
+// Platform User Manual & Operating Instructions Page
+// ============================================================================
+export const PlatformInstructionsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const instructionsQuery = useQuery({
+    queryKey: ['platform-instructions'],
+    queryFn: async () => {
+      const res = await api.get('/admin/instructions');
+      return res.data.data as {
+        filename: string;
+        title: string;
+        content: string;
+        sections: string[];
+        size_bytes: number;
+        last_modified: string;
+      };
+    },
+  });
+
+  const content = instructionsQuery.data?.content || '';
+  const sections = instructionsQuery.data?.sections || [];
+
+  const handleCopy = () => {
+    if (content) {
+      navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <Box sx={{ pb: 6 }}>
+      <ResearchDisclaimerBanner />
+      
+      {/* HEADER & ACTION CONTROLS */}
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        spacing={2}
+        sx={{ mb: 2.5 }}
+      >
+        <Box>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <MenuBookOutlinedIcon color="primary" sx={{ fontSize: 32 }} />
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              Platform User Manual & Operating Instructions
+            </Typography>
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Standard operating procedures, 11-stage AI pipeline workflows, RBAC privileges, and calibration standards
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ContentCopyOutlinedIcon fontSize="small" />}
+            onClick={handleCopy}
+            color={copied ? 'success' : 'inherit'}
+          >
+            {copied ? 'Copied Markdown!' : 'Copy Markdown'}
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<PrintOutlinedIcon fontSize="small" />}
+            onClick={handlePrint}
+            color="inherit"
+          >
+            Print / PDF
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<DownloadOutlinedIcon fontSize="small" />}
+            component="a"
+            href="/api/v1/admin/instructions/download"
+            target="_blank"
+            download="AI_Facial_Asymmetry_Analysis_Platform_User_Manual.md"
+          >
+            Download Guide (.md)
+          </Button>
+        </Stack>
+      </Stack>
+
+      {/* METADATA BAR */}
+      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Study Target Population
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              Unilateral Mandibular Fractures
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Longitudinal Visits
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              5 Standard Protocol Milestones
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Multi-Modal Acquisition
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              4 Standardized Views / Visit
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              AI Analysis Engine
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              11 Automated Stages
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Source Documentation
+            </Typography>
+            <Chip size="small" variant="outlined" label={instructionsQuery.data?.filename || 'docs/INSTRUCTIONS_HOW_TO_USE.md'} />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* TABS & SEARCH */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: 2.5 }}>
+        <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
+          <Tab label="Interactive User Guide" icon={<MenuBookOutlinedIcon fontSize="small" />} iconPosition="start" />
+          <Tab label="Raw Markdown Source" icon={<DescriptionOutlinedIcon fontSize="small" />} iconPosition="start" />
+        </Tabs>
+
+        {activeTab === 0 && (
+          <TextField
+            size="small"
+            placeholder="Search instructions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlinedIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: { xs: '100%', sm: 280 } }}
+          />
+        )}
+      </Stack>
+
+      {/* TAB 0: INTERACTIVE USER GUIDE */}
+      {activeTab === 0 && (
+        <Grid container spacing={3}>
+          {/* Quick TOC Sidebar */}
+          <Grid size={{ xs: 12, md: 3.5 }}>
+            <Card sx={{ position: { md: 'sticky' }, top: 84 }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Manual Chapters
+                </Typography>
+                <Stack spacing={0.75}>
+                  {[
+                    { id: 'section-1', title: '1. Platform Overview & Scope' },
+                    { id: 'section-2', title: '2. User Roles & RBAC Matrix' },
+                    { id: 'section-3', title: '3. Longitudinal Protocol' },
+                    { id: 'section-4', title: '4. Step-by-Step Workflow' },
+                    { id: 'section-5', title: '5. Dynamic System Settings' },
+                    { id: 'section-6', title: '6. Troubleshooting & FAQ' },
+                  ].map((ch) => (
+                    <Button
+                      key={ch.id}
+                      size="small"
+                      variant="text"
+                      color="inherit"
+                      sx={{
+                        justifyContent: 'flex-start',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        fontSize: '0.82rem',
+                        py: 0.5,
+                        px: 1,
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'action.hover', color: 'primary.main' },
+                      }}
+                      onClick={() => {
+                        const el = document.getElementById(ch.id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                    >
+                      {ch.title}
+                    </Button>
+                  ))}
+                </Stack>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  Quick Jump References:
+                </Typography>
+                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                  {['MediaPipe', 'OPG Calibration', 'Gemini AI', 'Dijkstra 3D', 'Bland-Altman', 'run.bat'].map((tag) => (
+                    <Chip
+                      key={tag}
+                      size="small"
+                      label={tag}
+                      clickable
+                      onClick={() => setSearchQuery(tag)}
+                      sx={{ fontSize: '0.72rem' }}
+                    />
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Guide Content Sections */}
+          <Grid size={{ xs: 12, md: 8.5 }}>
+            <Stack spacing={3}>
+              {/* SECTION 1: OVERVIEW */}
+              <Card id="section-1">
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                    1. Platform Overview & Clinical Scope
+                  </Typography>
+                  <Typography variant="body2" sx={{ lineHeight: 1.7, mb: 2 }}>
+                    The <strong>AI Facial Asymmetry Analysis Platform</strong> is an enterprise clinical research system designed to standardize, accelerate, and validate quantitative facial asymmetry assessments in patients who have sustained <strong>unilateral mandibular fractures treated by open or closed reduction and internal fixation (ORIF)</strong>.
+                  </Typography>
+
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    <strong>Clinical Research Notice:</strong> This software is strictly intended for research measurement, documentation, and biostatistical tracking. Outputs do not constitute a medical diagnosis or treatment directive. All measurements require clinical examiner sign-off.
+                  </Alert>
+
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                          Dual-Coordinate Audit
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          AI raw predictions (predicted_x/y) are permanently preserved alongside examiner adjustments (examiner_x/y).
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'secondary.main' }}>
+                          Physical Scale Rigor
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Rejects generic screen PPI (1 mm ≠ 3.78 px). Requires 2-point fiducial ruler or OPG magnification scaling.
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                          Biostatistical Validity
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Computes Asymmetry Index (%), Intraclass Correlation ICC(2,1), Bland–Altman bias, and longitudinal recovery deltas.
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 2: ROLES & RBAC */}
+              <Card id="section-2">
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                    2. User Roles & Access Permissions (RBAC)
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    The platform enforces strict role-based access control. All seeded development accounts share the password: <code>Research@2026</code>.
+                  </Typography>
+
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Role</TableCell>
+                          <TableCell>Default Seed Email</TableCell>
+                          <TableCell>Permitted Operations & Modules</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {[
+                          { role: 'System Administrator', email: 'admin@faplatform.org', perms: 'Full governance, dynamic API keys, system audit logs, storage' },
+                          { role: 'Principal Investigator', email: 'pi@faplatform.org', perms: 'Study protocol, visit sign-offs, clinical telemetry, audit review' },
+                          { role: 'Research Coordinator', email: 'coordinator@faplatform.org', perms: 'Patient recruitment, demographics, visit scheduling, image upload' },
+                          { role: 'Clinician / Examiner', email: 'examiner@faplatform.org', perms: 'Landmark refinement, scale calibration, measurement approvals' },
+                          { role: 'Research Analyst', email: 'analyst@faplatform.org', perms: 'Anonymized queries, ICC / Bland-Altman modeling, data exports' },
+                          { role: 'Read-only Researcher', email: 'readonly@faplatform.org', perms: 'De-identified longitudinal viewing and report downloads' },
+                        ].map((r) => (
+                          <TableRow key={r.role} hover>
+                            <TableCell>
+                              <Chip size="small" label={r.role} color="primary" variant="outlined" />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                                {r.email}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {r.perms}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 3: PROTOCOL MILESTONES */}
+              <Card id="section-3">
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                    3. Longitudinal Protocol & Study Milestones
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    Every subject is evaluated across 5 mandatory longitudinal milestones to measure anatomical and soft tissue symmetry recovery:
+                  </Typography>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
+                    {[
+                      { step: '1', title: 'PreOperative', sub: 'Baseline deformity' },
+                      { step: '2', title: 'PostOp 1 Wk', sub: 'Early edema baseline' },
+                      { step: '3', title: 'PostOp 6 Wks', sub: 'Primary bony union' },
+                      { step: '4', title: 'PostOp 3 Mo', sub: 'Remodeling phase' },
+                      { step: '5', title: 'PostOp 6 Mo', sub: 'Final stable outcome' },
+                    ].map((m) => (
+                      <Paper
+                        key={m.title}
+                        variant="outlined"
+                        sx={{
+                          p: 1.5,
+                          flex: 1,
+                          textAlign: 'center',
+                          bgcolor: 'background.default',
+                          borderTop: '3px solid',
+                          borderColor: 'primary.main',
+                        }}
+                      >
+                        <Typography variant="caption" color="primary.main" sx={{ fontWeight: 800 }}>
+                          VISIT {m.step}
+                        </Typography>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {m.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {m.sub}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 4: STEP-BY-STEP WORKFLOW */}
+              <Card id="section-4">
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                    4. Step-by-Step Clinical Research Workflow
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                    Follow this sequential operational procedure for every study visit:
+                  </Typography>
+
+                  <Stack spacing={2}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                        Step 4.1: Patient Enrollment
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                        Go to <strong>Patients</strong> &rarr; <strong>New Patient</strong>. Record de-identified study ID (e.g. <code>FA-2026-001</code>), fracture anatomical zone (Condyle, Angle, Body, Symphysis, Ramus), and surgical fixation technique (e.g. ORIF with miniplates).
+                      </Typography>
+                    </Paper>
+
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                        Step 4.2: Schedule Study Visit & Upload 4 Multi-Modal Views
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 1 }}>
+                        Create a study visit milestone and upload the four standardized views required for cross-validation:
+                      </Typography>
+                      <Grid container spacing={1}>
+                        <Grid size={{ xs: 6, sm: 3 }}>
+                          <Chip size="small" label="1. Frontal Photo" variant="outlined" sx={{ width: '100%' }} />
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 3 }}>
+                          <Chip size="small" label="2. Right Lateral" variant="outlined" sx={{ width: '100%' }} />
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 3 }}>
+                          <Chip size="small" label="3. Left Lateral" variant="outlined" sx={{ width: '100%' }} />
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 3 }}>
+                          <Chip size="small" label="4. Panoramic OPG" variant="outlined" sx={{ width: '100%' }} />
+                        </Grid>
+                      </Grid>
+                    </Paper>
+
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                        Step 4.3: Execute 11-Stage AI Pipeline
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                        Click <strong>Run AI Analysis Pipeline</strong>. The automated engine performs landmark extraction (MediaPipe 478 points), anatomical segmentation, quality checks, 3D surface mesh reconstruction, Dijkstra geodesic path compute, and automated draft report generation.
+                      </Typography>
+                    </Paper>
+
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                        Step 4.4: Physical Scale Calibration (Fiducial Ruler & OPG Magnification)
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                        In the <strong>Scale Calibration</strong> tab, calibrate image pixels to real millimeters:
+                        <br />
+                        &bull; <strong>Photos</strong>: Select 2 points on the circular or linear ruler marker and enter physical length in mm (<code>Scale = known_mm / measured_px</code>).
+                        <br />
+                        &bull; <strong>OPG Radiograph</strong>: Enter the panoramic device magnification factor (typically <code>1.25x</code>).
+                      </Typography>
+                    </Paper>
+
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                        Step 4.5: Interactive SVG/Canvas Landmark Review & Examiner Refinement
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                        In the <strong>Landmarks</strong> tab, zoom (up to 400%) and drag any predicted point (Gonion, Cheilion, Exocanthion, Menton) to anatomical boundaries. The system retains original AI predictions alongside your adjustments in the audit ledger.
+                      </Typography>
+                    </Paper>
+
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                        Step 4.6: Review Asymmetry Indices & Export Multi-Format Reports
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                        Review bilateral differences: Absolute Delta |R - L| (in mm) and Asymmetry Index AI % = (|R - L| / (R + L)) * 100%. Export publication-ready comprehensive PDF dossiers, CSV measurement sheets, Excel workbooks, or 3D OBJ/PLY meshes.
+                      </Typography>
+                    </Paper>
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 5: DYNAMIC SETTINGS */}
+              <Card id="section-5">
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                    5. System Administration & Database-Backed Settings
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    Administrators can manage API credentials and system parameters dynamically from the <strong>Administration</strong> &rarr; <strong>Settings</strong> page without restarting Docker or modifying <code>.env</code> files:
+                  </Typography>
+
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Key</TableCell>
+                          <TableCell>Purpose & Target Engine</TableCell>
+                          <TableCell>Default</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {[
+                          { key: 'GEMINI_API_KEY', desc: 'Google Gemini 2.0/2.5 for AI narrative reports', def: '(stored in DB table)' },
+                          { key: 'NVIDIA_API_KEY', desc: 'NVIDIA NIM API key for hardware-accelerated models', def: '(stored in DB table)' },
+                          { key: 'OPENAI_API_KEY', desc: 'OpenAI GPT-4o for multimodal report validation', def: '(stored in DB table)' },
+                          { key: 'STORAGE_BACKEND', desc: 'Blob engine: database, local, or s3', def: 'database' },
+                          { key: 'TASK_BACKEND', desc: 'Async queue engine: inline or celery', def: 'inline' },
+                          { key: 'ALLOW_EXTERNAL_AI_UPLOADS', desc: 'Toggle cloud AI API calls vs air-gapped local', def: 'false' },
+                        ].map((s) => (
+                          <TableRow key={s.key} hover>
+                            <TableCell>
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                                {s.key}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {s.desc}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip size="small" variant="outlined" label={s.def} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 6: FAQ */}
+              <Card id="section-6">
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                    6. Single-Shot Execution & Troubleshooting FAQ
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Frequently asked technical questions regarding Windows and Docker execution:
+                  </Typography>
+
+                  <Stack spacing={1.5}>
+                    <Accordion defaultExpanded>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          How does the single-shot run.bat script work?
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                          Double-clicking <code>run.bat</code> automatically verifies Docker, starts Docker Desktop if stopped, updates code from Git (<code>git pull</code>), reuses existing PostgreSQL (<code>fa_postgres</code>) and Redis (<code>fa_redis</code>) containers without recreating them, rebuilds backend and frontend with updated files, and opens your browser to <code>http://localhost:5173</code>.
+                        </Typography>
+                      </AccordionDetails>
+                    </Accordion>
+
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Why do my measurements say "Unscaled"?
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                          Measurements require physical calibration before they can be reported in millimeters. Open the visit, go to the <strong>Scale Calibration</strong> tab, select two points on your visible ruler fiducial, and enter its known length in millimeters.
+                        </Typography>
+                      </AccordionDetails>
+                    </Accordion>
+
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Can I use the platform completely offline?
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                          Yes! The platform includes pre-downloaded Google MediaPipe 478-point neural models (<code>backend/models/mediapipe/</code>). In System Settings, set <code>ALLOW_EXTERNAL_AI_UPLOADS=false</code> to ensure no data ever leaves your local network.
+                        </Typography>
+                      </AccordionDetails>
+                    </Accordion>
+
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Where are the interactive Swagger API docs?
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                          When running, visit <code>http://localhost:5173/docs</code> or <code>http://localhost:8000/docs</code> to inspect and execute all 40+ REST API endpoints interactively.
+                        </Typography>
+                      </AccordionDetails>
+                    </Accordion>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Stack>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* TAB 1: RAW MARKDOWN SOURCE */}
+      {activeTab === 1 && (
+        <Card>
+          <CardContent>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                Raw Markdown Source ({instructionsQuery.data?.filename || 'INSTRUCTIONS_HOW_TO_USE.md'})
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ContentCopyOutlinedIcon fontSize="small" />}
+                onClick={handleCopy}
+              >
+                {copied ? 'Copied!' : 'Copy Raw Text'}
+              </Button>
+            </Stack>
+            <Box
+              component="pre"
+              sx={{
+                p: 2.5,
+                borderRadius: 1.5,
+                backgroundColor: '#0F172A',
+                color: '#E2E8F0',
+                fontSize: '0.82rem',
+                lineHeight: 1.6,
+                fontFamily: 'monospace',
+                overflowX: 'auto',
+                maxHeight: '70vh',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {content || 'Loading instruction manual...'}
+            </Box>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 };

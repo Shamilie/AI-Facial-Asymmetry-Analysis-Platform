@@ -984,3 +984,75 @@ async def update_system_setting(
     )
     return ok({"key": setting.key, "updated": True, "category": setting.category})
 
+
+# ---------------------------------------------------------------------------
+# Platform User Manual & Operating Instructions Documentation
+# ---------------------------------------------------------------------------
+
+
+def _get_instructions_file_path() -> Path:
+    from pathlib import Path
+
+    candidates = [
+        Path(__file__).resolve().parents[4] / "docs" / "INSTRUCTIONS_HOW_TO_USE.md",
+        Path(__file__).resolve().parents[5] / "docs" / "INSTRUCTIONS_HOW_TO_USE.md",
+        Path(__file__).resolve().parents[5] / "INSTRUCTIONS_HOW_TO_USE.md",
+        Path("docs/INSTRUCTIONS_HOW_TO_USE.md"),
+        Path("../docs/INSTRUCTIONS_HOW_TO_USE.md"),
+        Path("backend/docs/INSTRUCTIONS_HOW_TO_USE.md"),
+        Path("INSTRUCTIONS_HOW_TO_USE.md"),
+    ]
+    for p in candidates:
+        if p.exists() and p.is_file():
+            return p
+    return candidates[0]
+
+
+@router.get("/admin/instructions")
+async def get_platform_instructions(
+    current_user: Any = Depends(get_current_user),
+) -> dict:
+    file_path = _get_instructions_file_path()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Instruction manual file not found")
+
+    content = file_path.read_text(encoding="utf-8")
+
+    sections = []
+    for line in content.splitlines():
+        if line.startswith("## ") and not line.startswith("### "):
+            sec_title = line.replace("## ", "").strip()
+            sections.append(sec_title)
+
+    stat = file_path.stat()
+    return ok(
+        {
+            "filename": file_path.name,
+            "title": "AI Facial Asymmetry Analysis Platform — User Manual & Operating Instructions",
+            "content": content,
+            "sections": sections,
+            "size_bytes": stat.st_size,
+            "last_modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        }
+    )
+
+
+@router.get("/admin/instructions/download")
+async def download_platform_instructions(
+    current_user: Any = Depends(get_current_user),
+):
+    from fastapi.responses import FileResponse
+
+    file_path = _get_instructions_file_path()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Instruction manual file not found")
+
+    return FileResponse(
+        path=str(file_path),
+        media_type="text/markdown",
+        filename="AI_Facial_Asymmetry_Analysis_Platform_User_Manual.md",
+        headers={
+            "Content-Disposition": 'attachment; filename="AI_Facial_Asymmetry_Analysis_Platform_User_Manual.md"'
+        },
+    )
+
