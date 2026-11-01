@@ -14,6 +14,17 @@ $RootPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $RootPath
 
 # -----------------------------------------------------------------------------
+# Check Administrator Privileges & Auto-Unblock Files
+# -----------------------------------------------------------------------------
+$CurrentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+$Principal = New-Object Security.Principal.WindowsPrincipal($CurrentUser)
+$IsAdmin = $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (Get-Command Unblock-File -ErrorAction SilentlyContinue) {
+    Get-ChildItem -Path $RootPath -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+}
+
+# -----------------------------------------------------------------------------
 # Check Compose Command (docker-compose vs docker compose)
 # -----------------------------------------------------------------------------
 $ComposeCmd = if (Get-Command docker-compose -ErrorAction SilentlyContinue) { "docker-compose" } else { "docker compose" }
@@ -50,6 +61,19 @@ Write-Host @"
 
 # Step 1: Ensure PostgreSQL container is running via Docker
 if (Get-Command docker -ErrorAction SilentlyContinue) {
+    # Check for permission / named pipe access restriction on Windows 11
+    $dockerInfoErr = (docker info 2>&1 | Out-String)
+    if ($dockerInfoErr -match "access is denied|unauthorized|permission|pipe") {
+        Write-Host "[WARN] Docker engine named pipe access restricted." -ForegroundColor Yellow
+        if (-not $IsAdmin) {
+            Write-Host "[INFO] Re-launching with Administrator privileges to access Docker..." -ForegroundColor Yellow
+            Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+            exit
+        } else {
+            net localgroup docker-users "$env:USERNAME" /add 2>$null | Out-Null
+        }
+    }
+
     Write-Host "Ensuring PostgreSQL 16 container is running in Docker..." -ForegroundColor Cyan
     try {
         & $ComposeCmd up -d postgres
@@ -87,7 +111,7 @@ if (-not (Test-Path $VenvPython)) {
     } elseif (Get-Command python -ErrorAction SilentlyContinue) {
         $VenvPython = "python"
     } else {
-        Write-Host "[ERROR] Python environment not detected. Please run setup.bat first." -ForegroundColor Red
+        Write-Host "[ERROR] Python environment not detected. Please run run.bat first." -ForegroundColor Red
         pause
         exit 1
     }

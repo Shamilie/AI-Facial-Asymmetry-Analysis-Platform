@@ -40,6 +40,45 @@ function Write-Err {
 $RootPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $RootPath
 
+# -----------------------------------------------------------------------------
+# STEP 0: Check Administrator Privileges, Write Access & Unblock Files
+# -----------------------------------------------------------------------------
+$CurrentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+$Principal = New-Object Security.Principal.WindowsPrincipal($CurrentUser)
+$IsAdmin = $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+# Test directory write permission
+try {
+    $permTest = Join-Path $RootPath ".perm_test"
+    [IO.File]::WriteAllText($permTest, "test")
+    Remove-Item $permTest -Force -ErrorAction SilentlyContinue
+} catch {
+    Write-Host "[INFO] Current directory requires Administrator privileges. Relaunching elevated..." -ForegroundColor Yellow
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
+
+# Auto-unblock files in directory (removes Windows Mark-of-the-Web on zip extractions)
+if (Get-Command Unblock-File -ErrorAction SilentlyContinue) {
+    Get-ChildItem -Path $RootPath -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+}
+
+# Safe download helper (avoids PowerShell Invoke-WebRequest UnauthorizedAccessException)
+function Download-FileSafely {
+    param([string]$Url, [string]$OutPath)
+    if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+        & curl.exe -fSL --create-dirs -o $OutPath $Url
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $OutPath)) { return }
+    }
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($Url, $OutPath)
+    } catch {
+        Invoke-WebRequest -Uri $Url -OutFile $OutPath -UseBasicParsing
+    }
+}
+
 Write-Host @"
 ====================================================================
       AI Facial Asymmetry Analysis Platform — Windows Setup Wizard
@@ -175,6 +214,20 @@ Write-Step "Step 3: Initializing PostgreSQL 16 via Docker"
 $ComposeCmd = if (Get-Command docker-compose -ErrorAction SilentlyContinue) { "docker-compose" } else { "docker compose" }
 
 if ($DockerFound) {
+    # Check for permission / named pipe access restriction on Windows 11
+    $dockerInfoErr = (docker info 2>&1 | Out-String)
+    if ($dockerInfoErr -match "access is denied|unauthorized|permission|pipe") {
+        Write-Warn "Docker engine named pipe access restricted."
+        if (-not $IsAdmin) {
+            Write-Host "[INFO] Re-launching with Administrator privileges to access Docker..." -ForegroundColor Yellow
+            Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+            exit
+        } else {
+            Write-Host "Attempting to enroll current user in 'docker-users' group..." -ForegroundColor Cyan
+            net localgroup docker-users "$env:USERNAME" /add 2>$null | Out-Null
+        }
+    }
+
     Write-Host "Starting PostgreSQL 16 container (fa_postgres) on port 5432..." -ForegroundColor Cyan
     try {
         & $ComposeCmd up -d postgres
@@ -255,7 +308,7 @@ $FaceModelUrl = "https://storage.googleapis.com/mediapipe-models/face_landmarker
 
 if (-not (Test-Path $FaceModelPath)) {
     Write-Host "Downloading MediaPipe 478-point 3D FaceLandmarker model (~3.76 MB)..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $FaceModelUrl -OutFile $FaceModelPath -UseBasicParsing
+    Download-FileSafely -Url $FaceModelUrl -OutPath $FaceModelPath
     Write-Success "Downloaded face_landmarker.task."
 } else {
     Write-Success "MediaPipe FaceLandmarker model is present ($([math]::Round((Get-Item $FaceModelPath).Length / 1MB, 2)) MB)."
@@ -266,7 +319,7 @@ $SegmenterModelUrl = "https://storage.googleapis.com/mediapipe-models/image_segm
 
 if (-not (Test-Path $SegmenterModelPath)) {
     Write-Host "Downloading MediaPipe Multiclass Segmenter model (~16.37 MB)..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $SegmenterModelUrl -OutFile $SegmenterModelPath -UseBasicParsing
+    Download-FileSafely -Url $SegmenterModelUrl -OutPath $SegmenterModelPath
     Write-Success "Downloaded selfie_multiclass_256x256.tflite."
 } else {
     Write-Success "MediaPipe Multiclass Segmenter model is present ($([math]::Round((Get-Item $SegmenterModelPath).Length / 1MB, 2)) MB)."
@@ -325,11 +378,11 @@ Write-Host @"
 All components are configured and ready to run.
 
 How to Run:
-  * Hybrid Mode (PostgreSQL in Docker + Local Dev Servers):
-      Double-click 'start.bat'
+  * Recommended Single-Shot Runner (All-in-One Docker):
+      Double-click 'run.bat'
 
-  * Full Containerized Mode (Entire Platform in Docker):
-      Double-click 'start_docker.bat'
+  * Local Hot-Reload Development:
+      .\start.ps1
 
 Default Access:
   * Web Portal:       http://localhost:5173
